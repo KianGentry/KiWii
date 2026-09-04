@@ -16,6 +16,8 @@ add_executable(mkwii-server
 )
 
 target_include_directories(mkwii-server PRIVATE include)
+find_package(OpenSSL REQUIRED)
+target_link_libraries(mkwii-server PRIVATE OpenSSL::Crypto)
 
 target_compile_options(mkwii-server PRIVATE
     -Wall
@@ -49,6 +51,7 @@ if (BUILD_TESTING)
         src/gamespy_profile.cpp
     )
     target_include_directories(gamespy-profile-test PRIVATE include)
+    target_link_libraries(gamespy-profile-test PRIVATE OpenSSL::Crypto)
     add_test(NAME gamespy-profile-test COMMAND gamespy-profile-test)
 
     add_executable(nas-http-test

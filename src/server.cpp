@@ -183,6 +183,10 @@ void handle_profile_connection(int profile_socket) {
 
     // send initial login challenge to initiate GameSpy profile authentication
     const std::string login_challenge = profile_login_challenge();
+    const std::size_t challenge_start = login_challenge.find("\\challenge\\") + 11;
+    const std::size_t challenge_end = login_challenge.find("\\id\\", challenge_start);
+    const std::string server_challenge = login_challenge.substr(
+        challenge_start, challenge_end - challenge_start);
     send(client_socket, login_challenge.data(), login_challenge.size(), MSG_NOSIGNAL);
     std::cout << "GameSpy profile login challenge sent\n";
     
@@ -219,7 +223,16 @@ void handle_profile_connection(int profile_socket) {
                 send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
                 std::cout << "GameSpy profile keepalive response sent\n";
                 } else if (is_profile_login(request)) {
-                    const std::string response = profile_login_response(request);
+                    const std::size_t token_marker = request.find("\\authtoken\\");
+                    const std::size_t token_start = token_marker == std::string::npos
+                        ? std::string::npos : token_marker + 11;
+                    const std::size_t token_end = token_start == std::string::npos
+                        ? std::string::npos : request.find('\\', token_start);
+                    const std::string token = token_start == std::string::npos
+                        ? std::string() : request.substr(token_start, token_end - token_start);
+                    const LoginCredentials credentials = credentials_for_token(token);
+                    const std::string response = profile_login_response(
+                        request, server_challenge, credentials);
                     send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
                     std::cout << "GameSpy profile login response sent\n";
             }

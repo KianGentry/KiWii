@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "mkwii/nas_http.h"
+
 namespace mkwii {
 
 bool is_profile_keepalive(const std::string& request);
@@ -13,7 +15,9 @@ const std::string& profile_keepalive_response();
 
 std::string profile_login_challenge();
 
-std::string profile_login_response(const std::string& request);
+std::string profile_login_response(const std::string& request,
+	const std::string& server_challenge,
+	const LoginCredentials& credentials);
 
 }  // namespace mkwii
 

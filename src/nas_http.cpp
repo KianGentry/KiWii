@@ -89,6 +89,15 @@ std::string request_body(const std::string& request) {
 
 }  // namespace
 
+LoginCredentials credentials_for_token(const std::string& token) {
+    for (const auto& [user_id, session] : login_sessions) {
+        if (session.token == token) {
+            return {session.challenge, session.token, user_id};
+        }
+    }
+    return {};
+}
+
 // generic connectivity check response
 std::string nas_connectivity_response() {
     return "HTTP/1.1 200 OK\r\n"
