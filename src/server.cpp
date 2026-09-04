@@ -1,6 +1,7 @@
 #include "mkwii/server.h"
 
 #include "mkwii/gamespy_qr.h"
+#include "mkwii/nas_http.h"
 
 #include <arpa/inet.h>
 #include <csignal>
@@ -142,6 +143,20 @@ void handle_game_connection(int game_socket) {
     close(client_socket);
 }
 
+void handle_nas_connection(int nas_socket) {
+    const int client_socket = accept(nas_socket, nullptr, nullptr);
+    if (client_socket < 0) {
+        return;
+    }
+
+    char request[1024];
+    recv(client_socket, request, sizeof(request), 0);
+    const std::string response = nas_connectivity_response();
+    send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
+    close(client_socket);
+    std::cout << "NAS connectivity request served\n";
+}
+
 }  // namespace
 
 int run_server(const Config& config) {
@@ -170,10 +185,20 @@ int run_server(const Config& config) {
         return 1;
     }
 
+    const int nas_socket = open_game_socket(config.nas_port);
+    if (nas_socket < 0) {
+        std::cerr << "could not bind NAS port " << config.nas_port << '\n';
+        close(health_socket);
+        close(qr_socket);
+        close(game_socket);
+        return 1;
+    }
+
     std::cout << "server '" << config.server_name << "' started\n"
             << "advertised address: " << config.advertised_address << '\n'
             << "health port: " << config.health_port << '\n'
             << "DNS port (reserved): " << config.dns_port << '\n'
+            << "NAS HTTP port: " << config.nas_port << '\n'
             << "GameSpy QR port: " << config.qr_port << '\n'
             << "GameSpy browser port: " << config.game_port << '\n';
 
@@ -184,7 +209,8 @@ int run_server(const Config& config) {
         FD_SET(health_socket, &readable);
         FD_SET(qr_socket, &readable);
         FD_SET(game_socket, &readable);
-        const int highest_socket = std::max({health_socket, qr_socket, game_socket});
+        FD_SET(nas_socket, &readable);
+        const int highest_socket = std::max({health_socket, qr_socket, game_socket, nas_socket});
 
         if (select(highest_socket + 1, &readable, nullptr, nullptr, &timeout) <= 0) {
             continue;
@@ -196,6 +222,10 @@ int run_server(const Config& config) {
 
         if (FD_ISSET(game_socket, &readable)) {
             handle_game_connection(game_socket);
+        }
+
+        if (FD_ISSET(nas_socket, &readable)) {
+            handle_nas_connection(nas_socket);
         }
 
         if (!FD_ISSET(health_socket, &readable)) {
@@ -220,6 +250,7 @@ int run_server(const Config& config) {
     close(health_socket);
     close(qr_socket);
     close(game_socket);
+    close(nas_socket);
     std::cout << "server stopped\n";
     return 0;
 }

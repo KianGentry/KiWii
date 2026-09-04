@@ -6,11 +6,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-    && cmake --build build --parallel
+RUN cmake -S . -B /tmp/kiwii-build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+    && cmake --build /tmp/kiwii-build --parallel
 
 FROM debian:trixie-slim
-RUN useradd --system --create-home --uid 10001 mkwii
-COPY --from=build /src/build/mkwii-server /usr/local/bin/mkwii-server
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libcap2-bin \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --create-home --uid 10001 mkwii
+COPY --from=build /tmp/kiwii-build/mkwii-server /usr/local/bin/mkwii-server
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/mkwii-server
 USER mkwii
 ENTRYPOINT ["/usr/local/bin/mkwii-server"]

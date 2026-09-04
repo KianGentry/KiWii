@@ -26,10 +26,18 @@ set -a; . ./.env; set +a
 
 Health is at `http://127.0.0.1:8080/` with the example config.
 
+The prototype currently provides the GameSpy QR availability response on UDP
+port `27900` and the AltWFC-compatible plain HTTP connectivity response on
+port `80`. The client still attempts the connectivity check over HTTPS on port
+`443`; a no-SSL client patch is therefore required before the NAS endpoint can
+be used by Dolphin.
+
 ## Docker
 
 ```sh
 docker compose up -d
 ```
 
-The initial container only provides the health endpoint. The DNS and game ports are reserved in the compose file so the deployment shape is established before protocol stuff is added.
+The container currently provides health, the GameSpy QR availability response,
+and the plain HTTP NAS connectivity response. DNS, NAT negotiation, and game
+session services are not implemented yet.
