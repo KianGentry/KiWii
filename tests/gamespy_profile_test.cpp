@@ -17,6 +17,10 @@ int main() {
     const std::string profile_response = mkwii::profile_getprofile_response(getprofile);
     assert(profile_response.compare(0, 5, "\\pi\\\\") == 0);
     assert(profile_response.find("\\profileid\\1\\") != std::string::npos);
+    assert(profile_response.find("\\nick\\KiWii0000000000002\\") !=
+           std::string::npos);
+    assert(profile_response.find("\\email\\KiWii0000000000002@nds\\") !=
+           std::string::npos);
     assert(profile_response.find("\\uniquenick\\KiWii0000000000002\\") !=
            std::string::npos);
     assert(profile_response.compare(profile_response.size() - 12, 12,

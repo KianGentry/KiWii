@@ -129,18 +129,22 @@ std::string profile_login_response(const std::string& request,
 }
 
 std::string profile_getprofile_response(const std::string& request) {
+    const std::string user_id = "0000000000002";
+    const std::string unique_nick = "KiWii" + user_id;
+    const std::string email = unique_nick + "@nds";
+
     std::ostringstream response;
     response << "\\pi\\\\"
             << "profileid\\1"
-            << "\\nick\\KiWii"
-            << "\\userid\\0000000000002"
-            << "\\email\\KiWii@nds"
+            << "\\nick\\" << unique_nick
+            << "\\userid\\" << user_id
+            << "\\email\\" << email
             << "\\sig\\" << random_hex(32)
-            << "\\uniquenick\\KiWii0000000000002"
+            << "\\uniquenick\\" << unique_nick
             << "\\pid\\11"
             << "\\lon\\0.000000"
             << "\\lat\\0.000000"
-            << "\\loc\\"
+            << "\\loc\\\\"
             << "\\id\\" << request_value(request, "id")
             << "\\final\\";
     return response.str();
