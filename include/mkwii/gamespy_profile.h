@@ -15,6 +15,8 @@ bool is_profile_getprofile(const std::string& request);
 
 bool is_profile_updatepro(const std::string& request);
 
+bool is_profile_status(const std::string& request);
+
 std::string profile_field_value(const std::string& request, const std::string& key);
 
 const std::string& profile_keepalive_response();

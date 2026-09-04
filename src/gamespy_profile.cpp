@@ -91,6 +91,12 @@ bool is_profile_updatepro(const std::string& request) {
         request.compare(request.size() - 7, 7, "\\final\\") == 0;
 }
 
+bool is_profile_status(const std::string& request) {
+    return request.compare(0, 8, "\\status\\") == 0 &&
+        request.size() >= 7 &&
+        request.compare(request.size() - 7, 7, "\\final\\") == 0;
+}
+
 std::string profile_field_value(const std::string& request, const std::string& key) {
     return request_value(request, key);
 }

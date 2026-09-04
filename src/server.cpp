@@ -202,6 +202,9 @@ void handle_profile_connection(int profile_socket) {
     LoginCredentials credentials;
     std::string firstname;
     std::string lastname;
+    std::string status;
+    std::string statstring;
+    std::string locstring;
     const std::size_t challenge_start = login_challenge.find("\\challenge\\") + 11;
     const std::size_t challenge_end = login_challenge.find("\\id\\", challenge_start);
     const std::string server_challenge = login_challenge.substr(
@@ -271,6 +274,14 @@ void handle_profile_connection(int profile_socket) {
                         lastname = updated_lastname;
                     }
                     std::cout << "GameSpy profile update consumed\n";
+                    } else if (is_profile_status(request)) {
+                        status = profile_field_value(request, "status");
+                        statstring = profile_field_value(request, "statstring");
+                        locstring = profile_field_value(request, "locstring");
+                        std::cout << "GameSpy profile status updated (status "
+                            << (status.empty() ? "unchanged" : status)
+                            << ", statstring " << statstring
+                            << ", locstring " << locstring << ")\n";
             }
         }
     }

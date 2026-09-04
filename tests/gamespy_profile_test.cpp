@@ -34,6 +34,12 @@ int main() {
     const std::string updatepro =
         "\\updatepro\\\\sesskey\\12345678\\firstname\\Wii:RMCP\\partnerid\\11\\final\\";
     assert(mkwii::is_profile_updatepro(updatepro));
+    const std::string status =
+        "\\status\\1\\sesskey\\12345678\\statstring\\/SCM/1/SCN/0/VER/90\\locstring\\\\final\\";
+    assert(mkwii::is_profile_status(status));
+    assert(mkwii::profile_field_value(status, "status") == "1");
+    assert(mkwii::profile_field_value(status, "statstring") == "/SCM/1/SCN/0/VER/90");
+    assert(mkwii::profile_field_value(status, "locstring").empty());
     const mkwii::LoginCredentials credentials{
         "nas-challenge",
         "NDS-test-token",
