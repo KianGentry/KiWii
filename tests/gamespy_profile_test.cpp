@@ -14,14 +14,18 @@ int main() {
     const std::string getprofile =
         "\\getprofile\\\\sesskey\\12345678\\profileid\\1\\id\\2\\final\\";
     assert(mkwii::is_profile_getprofile(getprofile));
-    const std::string profile_response = mkwii::profile_getprofile_response(getprofile);
+    const mkwii::LoginCredentials profile_credentials{
+        "", "", "MTQyMDIzMjMyMDc0Ng%2A%2A",
+    };
+    const std::string profile_response = mkwii::profile_getprofile_response(
+        getprofile, profile_credentials);
     assert(profile_response.compare(0, 5, "\\pi\\\\") == 0);
     assert(profile_response.find("\\profileid\\1\\") != std::string::npos);
-    assert(profile_response.find("\\nick\\KiWii0000000000002\\") !=
+        assert(profile_response.find("\\nick\\KiWiiMTQyMDIzMjMyMDc0Ng%2A%2A\\") !=
            std::string::npos);
-    assert(profile_response.find("\\email\\KiWii0000000000002@nds\\") !=
+        assert(profile_response.find("\\email\\KiWiiMTQyMDIzMjMyMDc0Ng%2A%2A@nds\\") !=
            std::string::npos);
-    assert(profile_response.find("\\uniquenick\\KiWii0000000000002\\") !=
+        assert(profile_response.find("\\uniquenick\\KiWiiMTQyMDIzMjMyMDc0Ng%2A%2A\\") !=
            std::string::npos);
     assert(profile_response.compare(profile_response.size() - 12, 12,
             "\\id\\2\\final\\") == 0);

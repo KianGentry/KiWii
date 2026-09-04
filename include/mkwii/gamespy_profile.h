@@ -23,7 +23,8 @@ std::string profile_login_response(const std::string& request,
 	const std::string& server_challenge,
 	const LoginCredentials& credentials);
 
-std::string profile_getprofile_response(const std::string& request);
+std::string profile_getprofile_response(const std::string& request,
+	const LoginCredentials& credentials);
 
 }  // namespace mkwii
 

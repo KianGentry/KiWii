@@ -128,8 +128,10 @@ std::string profile_login_response(const std::string& request,
     return response.str();
 }
 
-std::string profile_getprofile_response(const std::string& request) {
-    const std::string user_id = "0000000000002";
+std::string profile_getprofile_response(const std::string& request,
+    const LoginCredentials& credentials) {
+    const std::string user_id = credentials.user_id.empty()
+        ? "0000000000002" : credentials.user_id;
     const std::string unique_nick = "KiWii" + user_id;
     const std::string email = unique_nick + "@nds";
 

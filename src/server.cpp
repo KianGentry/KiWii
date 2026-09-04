@@ -183,6 +183,7 @@ void handle_profile_connection(int profile_socket) {
 
     // send initial login challenge to initiate GameSpy profile authentication
     const std::string login_challenge = profile_login_challenge();
+    LoginCredentials credentials;
     const std::size_t challenge_start = login_challenge.find("\\challenge\\") + 11;
     const std::size_t challenge_end = login_challenge.find("\\id\\", challenge_start);
     const std::string server_challenge = login_challenge.substr(
@@ -230,13 +231,14 @@ void handle_profile_connection(int profile_socket) {
                         ? std::string::npos : request.find('\\', token_start);
                     const std::string token = token_start == std::string::npos
                         ? std::string() : request.substr(token_start, token_end - token_start);
-                    const LoginCredentials credentials = credentials_for_token(token);
+                    credentials = credentials_for_token(token);
                     const std::string response = profile_login_response(
                         request, server_challenge, credentials);
                     send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
                     std::cout << "GameSpy profile login response sent\n";
                 } else if (is_profile_getprofile(request)) {
-                    const std::string response = profile_getprofile_response(request);
+                    const std::string response = profile_getprofile_response(
+                        request, credentials);
                     send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
                     std::cout << "GameSpy profile response sent\n";
                 } else if (is_profile_updatepro(request)) {
