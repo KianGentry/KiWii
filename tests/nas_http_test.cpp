@@ -25,6 +25,12 @@ int main() {
         assert(login_response.find("&datetime=") != std::string::npos);
         assert(login_response.size() > response.size());
 
+        const std::string second_login_response =
+            mkwii::nas_response_for_request(login_request);
+        assert(second_login_response != login_response);
+        assert(second_login_response.find("&challenge=") != std::string::npos);
+        assert(second_login_response.find("&token=NDS") != std::string::npos);
+
     assert(mkwii::nas_response_for_request("GET / HTTP/1.1\r\n\r\n") == response);
     return 0;
 }

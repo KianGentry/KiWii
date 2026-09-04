@@ -1,6 +1,5 @@
 #include "mkwii/nas_http.h"
 
-#include <chrono>
 #include <ctime>
 #include <random>
 #include <string_view>
@@ -48,9 +47,18 @@ std::string request_user_id(const std::string& request) {
 struct LoginSession {
     std::string challenge;
     std::string token;
+    std::string request_body;
 };
 
 std::unordered_map<std::string, LoginSession> login_sessions;
+
+std::string request_body(const std::string& request) {
+    const std::size_t body_start = request.find("\r\n\r\n");
+    if (body_start == std::string::npos) {
+        return {};
+    }
+    return request.substr(body_start + 4);
+}
 
 }  // namespace
 
@@ -75,6 +83,7 @@ std::string nas_response_for_request(const std::string& request) {
     const LoginSession session{
         random_text(8),
         "NDS" + random_text(80),
+        request_body(request),
     };
     login_sessions[user_id] = session;
 
