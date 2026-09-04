@@ -91,6 +91,10 @@ bool is_profile_updatepro(const std::string& request) {
         request.compare(request.size() - 7, 7, "\\final\\") == 0;
 }
 
+std::string profile_field_value(const std::string& request, const std::string& key) {
+    return request_value(request, key);
+}
+
 const std::string& profile_keepalive_response() {
     static const std::string response = keepalive_message;
     return response;
@@ -129,7 +133,9 @@ std::string profile_login_response(const std::string& request,
 }
 
 std::string profile_getprofile_response(const std::string& request,
-    const LoginCredentials& credentials) {
+    const LoginCredentials& credentials,
+    const std::string& firstname,
+    const std::string& lastname) {
     const std::string user_id = credentials.user_id.empty()
         ? "0000000000002" : credentials.user_id;
     const std::string unique_nick = "KiWii" + user_id;
@@ -144,7 +150,14 @@ std::string profile_getprofile_response(const std::string& request,
             << "\\sig\\" << random_hex(32)
             << "\\uniquenick\\" << unique_nick
             << "\\pid\\11"
-            << "\\lon\\0.000000"
+            ;
+    if (!firstname.empty()) {
+        response << "\\firstname\\" << firstname;
+    }
+    if (!lastname.empty()) {
+        response << "\\lastname\\" << lastname;
+    }
+    response << "\\lon\\0.000000"
             << "\\lat\\0.000000"
             << "\\loc\\\\"
             << "\\id\\" << request_value(request, "id")

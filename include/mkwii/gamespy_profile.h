@@ -15,6 +15,8 @@ bool is_profile_getprofile(const std::string& request);
 
 bool is_profile_updatepro(const std::string& request);
 
+std::string profile_field_value(const std::string& request, const std::string& key);
+
 const std::string& profile_keepalive_response();
 
 std::string profile_login_challenge();
@@ -24,7 +26,9 @@ std::string profile_login_response(const std::string& request,
 	const LoginCredentials& credentials);
 
 std::string profile_getprofile_response(const std::string& request,
-	const LoginCredentials& credentials);
+	const LoginCredentials& credentials,
+	const std::string& firstname,
+	const std::string& lastname);
 
 }  // namespace mkwii
 

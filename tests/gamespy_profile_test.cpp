@@ -18,7 +18,7 @@ int main() {
         "", "", "MTQyMDIzMjMyMDc0Ng%2A%2A",
     };
     const std::string profile_response = mkwii::profile_getprofile_response(
-        getprofile, profile_credentials);
+        getprofile, profile_credentials, "Wii:first@RMCP", "last-value");
     assert(profile_response.compare(0, 5, "\\pi\\\\") == 0);
     assert(profile_response.find("\\profileid\\1\\") != std::string::npos);
         assert(profile_response.find("\\nick\\KiWiiMTQyMDIzMjMyMDc0Ng%2A%2A\\") !=
@@ -27,6 +27,8 @@ int main() {
            std::string::npos);
         assert(profile_response.find("\\uniquenick\\KiWiiMTQyMDIzMjMyMDc0Ng%2A%2A\\") !=
            std::string::npos);
+            assert(profile_response.find("\\firstname\\Wii:first@RMCP\\lastname\\last-value\\") !=
+                std::string::npos);
     assert(profile_response.compare(profile_response.size() - 12, 12,
             "\\id\\2\\final\\") == 0);
     const std::string updatepro =
