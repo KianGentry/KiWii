@@ -218,6 +218,10 @@ void handle_profile_connection(int profile_socket) {
                 const std::string& response = profile_keepalive_response();
                 send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
                 std::cout << "GameSpy profile keepalive response sent\n";
+                } else if (is_profile_login(request)) {
+                    const std::string response = profile_login_response(request);
+                    send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
+                    std::cout << "GameSpy profile login response sent\n";
             }
         }
     }
