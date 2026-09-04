@@ -151,23 +151,37 @@ void handle_profile_connection(int profile_socket) {
         return;
     }
 
-    std::vector<std::uint8_t> packet(4096);
-    const ssize_t packet_size = recv(client_socket, packet.data(), packet.size(), 0);
-    if (packet_size > 0) {
-        packet.resize(static_cast<std::size_t>(packet_size));
-        std::ostringstream formatted_packet;
-        formatted_packet << std::hex << std::setfill('0');
-        for (const std::uint8_t byte : packet) {
-            formatted_packet << std::setw(2) << static_cast<unsigned int>(byte);
-        }
-        std::cout << "GameSpy profile request (" << packet.size()
-                << " bytes): " << formatted_packet.str() << '\n';
+    timeval receive_timeout{5, 0};
+    setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout,
+            sizeof(receive_timeout));
 
-        const std::string request(packet.begin(), packet.end());
-        if (is_profile_keepalive(request)) {
-            const std::string& response = profile_keepalive_response();
-            send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
-            std::cout << "GameSpy profile keepalive response sent\n";
+    std::string request_buffer;
+    char request_chunk[4096];
+    while (true) {
+        const ssize_t packet_size = recv(client_socket, request_chunk,
+                sizeof(request_chunk), 0);
+        if (packet_size <= 0) {
+            break;
+        }
+        request_buffer.append(request_chunk, static_cast<std::size_t>(packet_size));
+
+        while (true) {
+            const std::size_t message_end = request_buffer.find("\\final\\");
+            if (message_end == std::string::npos) {
+                break;
+            }
+
+            const std::size_t message_size = message_end + 7;
+            const std::string request = request_buffer.substr(0, message_size);
+            request_buffer.erase(0, message_size);
+
+            std::cout << "GameSpy profile request (" << request.size()
+                    << " bytes): " << request << '\n';
+            if (is_profile_keepalive(request)) {
+                const std::string& response = profile_keepalive_response();
+                send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
+                std::cout << "GameSpy profile keepalive response sent\n";
+            }
         }
     }
     close(client_socket);
