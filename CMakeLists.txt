@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(mkwii-server
     src/main.cpp
     src/config.cpp
+    src/gamespy_qr.cpp
     src/server.cpp
 )
 
@@ -33,4 +34,11 @@ if (BUILD_TESTING)
     )
     target_include_directories(config-test PRIVATE include)
     add_test(NAME config-test COMMAND config-test)
+
+    add_executable(gamespy-qr-test
+        tests/gamespy_qr_test.cpp
+        src/gamespy_qr.cpp
+    )
+    target_include_directories(gamespy-qr-test PRIVATE include)
+    add_test(NAME gamespy-qr-test COMMAND gamespy-qr-test)
 endif()

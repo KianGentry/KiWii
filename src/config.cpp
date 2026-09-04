@@ -36,6 +36,7 @@ Config config_from_environment() {
         required_environment("MKWII_ADVERTISED_ADDRESS"),
         port_environment("MKWII_HEALTH_PORT", 8080),
         port_environment("MKWII_DNS_PORT", 5353),
+        port_environment("MKWII_QR_PORT", 27900),
         port_environment("MKWII_GAME_PORT", 28910),
     };
 }

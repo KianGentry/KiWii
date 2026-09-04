@@ -8,6 +8,7 @@ int main() {
     setenv("MKWII_ADVERTISED_ADDRESS", "192.0.2.10", 1);
     setenv("MKWII_HEALTH_PORT", "18080", 1);
     setenv("MKWII_DNS_PORT", "15353", 1);
+    setenv("MKWII_QR_PORT", "27900", 1);
     setenv("MKWII_GAME_PORT", "28910", 1);
 
     const mkwii::Config config = mkwii::config_from_environment();
@@ -15,6 +16,7 @@ int main() {
     assert(config.advertised_address == "192.0.2.10");
     assert(config.health_port == 18080);
     assert(config.dns_port == 15353);
+    assert(config.qr_port == 27900);
     assert(config.game_port == 28910);
     return 0;
 }
