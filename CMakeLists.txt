@@ -10,6 +10,7 @@ add_executable(mkwii-server
     src/main.cpp
     src/config.cpp
     src/gamespy_qr.cpp
+    src/gamespy_profile.cpp
     src/nas_http.cpp
     src/server.cpp
 )
@@ -42,6 +43,13 @@ if (BUILD_TESTING)
     )
     target_include_directories(gamespy-qr-test PRIVATE include)
     add_test(NAME gamespy-qr-test COMMAND gamespy-qr-test)
+
+    add_executable(gamespy-profile-test
+        tests/gamespy_profile_test.cpp
+        src/gamespy_profile.cpp
+    )
+    target_include_directories(gamespy-profile-test PRIVATE include)
+    add_test(NAME gamespy-profile-test COMMAND gamespy-profile-test)
 
     add_executable(nas-http-test
         tests/nas_http_test.cpp

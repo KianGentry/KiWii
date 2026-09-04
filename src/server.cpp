@@ -1,6 +1,7 @@
 #include "mkwii/server.h"
 
 #include "mkwii/gamespy_qr.h"
+#include "mkwii/gamespy_profile.h"
 #include "mkwii/nas_http.h"
 
 #include <arpa/inet.h>
@@ -161,6 +162,13 @@ void handle_profile_connection(int profile_socket) {
         }
         std::cout << "GameSpy profile request (" << packet.size()
                 << " bytes): " << formatted_packet.str() << '\n';
+
+        const std::string request(packet.begin(), packet.end());
+        if (is_profile_keepalive(request)) {
+            const std::string& response = profile_keepalive_response();
+            send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
+            std::cout << "GameSpy profile keepalive response sent\n";
+        }
     }
     close(client_socket);
 }
