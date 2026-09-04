@@ -1,0 +1,6 @@
+- [x] QR
+- [x] NAS login
+- [x] profile ka
+- [ ] persistent profile session
+- [ ] gamespy browser
+- [ ] NAT negotiation
