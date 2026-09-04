@@ -235,6 +235,12 @@ void handle_profile_connection(int profile_socket) {
                         request, server_challenge, credentials);
                     send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
                     std::cout << "GameSpy profile login response sent\n";
+                } else if (is_profile_getprofile(request)) {
+                    const std::string response = profile_getprofile_response(request);
+                    send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
+                    std::cout << "GameSpy profile response sent\n";
+                } else if (is_profile_updatepro(request)) {
+                    std::cout << "GameSpy profile update consumed\n";
             }
         }
     }

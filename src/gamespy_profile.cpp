@@ -27,6 +27,10 @@ std::string random_text(std::size_t length, std::string_view alphabet) {
     return value;
 }
 
+std::string random_hex(std::size_t length) {
+    return random_text(length, "0123456789abcdef");
+}
+
 std::string request_value(const std::string& request, std::string_view key) {
     const std::string search = "\\" + std::string(key) + "\\";
     const std::size_t value_start = request.find(search);
@@ -75,6 +79,18 @@ bool is_profile_login(const std::string& request) {
         request.compare(request.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
+bool is_profile_getprofile(const std::string& request) {
+    return request.compare(0, 12, "\\getprofile\\") == 0 &&
+        request.size() >= 7 &&
+        request.compare(request.size() - 7, 7, "\\final\\") == 0;
+}
+
+bool is_profile_updatepro(const std::string& request) {
+    return request.compare(0, 11, "\\updatepro\\") == 0 &&
+        request.size() >= 7 &&
+        request.compare(request.size() - 7, 7, "\\final\\") == 0;
+}
+
 const std::string& profile_keepalive_response() {
     static const std::string response = keepalive_message;
     return response;
@@ -108,6 +124,24 @@ std::string profile_login_response(const std::string& request,
             << "\\uniquenick\\KiWii" << user_id
             << "\\lt\\" << login_ticket
             << "\\id\\" << request_id
+            << "\\final\\";
+    return response.str();
+}
+
+std::string profile_getprofile_response(const std::string& request) {
+    std::ostringstream response;
+    response << "\\pi\\"
+            << "profileid\\1"
+            << "\\nick\\KiWii"
+            << "\\userid\\0000000000002"
+            << "\\email\\KiWii@nds"
+            << "\\sig\\" << random_hex(32)
+            << "\\uniquenick\\KiWii0000000000002"
+            << "\\pid\\11"
+            << "\\lon\\0.000000"
+            << "\\lat\\0.000000"
+            << "\\loc\\"
+            << "\\id\\" << request_value(request, "id")
             << "\\final\\";
     return response.str();
 }
