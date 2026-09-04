@@ -130,7 +130,7 @@ std::string profile_login_response(const std::string& request,
 
 std::string profile_getprofile_response(const std::string& request) {
     std::ostringstream response;
-    response << "\\pi\\"
+    response << "\\pi\\\\"
             << "profileid\\1"
             << "\\nick\\KiWii"
             << "\\userid\\0000000000002"

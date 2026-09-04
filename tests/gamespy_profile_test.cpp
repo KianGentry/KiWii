@@ -15,7 +15,7 @@ int main() {
         "\\getprofile\\\\sesskey\\12345678\\profileid\\1\\id\\2\\final\\";
     assert(mkwii::is_profile_getprofile(getprofile));
     const std::string profile_response = mkwii::profile_getprofile_response(getprofile);
-    assert(profile_response.compare(0, 4, "\\pi\\") == 0);
+    assert(profile_response.compare(0, 5, "\\pi\\\\") == 0);
     assert(profile_response.find("\\profileid\\1\\") != std::string::npos);
     assert(profile_response.find("\\uniquenick\\KiWii0000000000002\\") !=
            std::string::npos);
