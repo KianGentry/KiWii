@@ -8,6 +8,7 @@
 namespace mkwii {
 namespace {
 
+// generate random text of specified length using alphanumeric characters
 std::string random_text(std::size_t length) {
     static std::mt19937 generator(std::random_device{}());
     constexpr std::string_view alphabet =
@@ -22,11 +23,13 @@ std::string random_text(std::size_t length) {
     return value;
 }
 
+// base64 encode input, padding with asterisks for incomplete final groups
 std::string base64_encode(std::string_view value) {
     constexpr std::string_view alphabet =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::string encoded;
     for (std::size_t index = 0; index < value.size(); index += 3) {
+        // read up to 3 bytes and pack into 24-bit chunk
         const unsigned int first = static_cast<unsigned char>(value[index]);
         const unsigned int second = index + 1 < value.size()
             ? static_cast<unsigned char>(value[index + 1]) : 0;
@@ -34,6 +37,7 @@ std::string base64_encode(std::string_view value) {
             ? static_cast<unsigned char>(value[index + 2]) : 0;
         const unsigned int chunk = (first << 16) | (second << 8) | third;
 
+        // encode chunk as 4 base64 characters (or padding)
         encoded += alphabet[(chunk >> 18) & 0x3f];
         encoded += alphabet[(chunk >> 12) & 0x3f];
         encoded += index + 1 < value.size() ? alphabet[(chunk >> 6) & 0x3f] : '*';
@@ -42,6 +46,7 @@ std::string base64_encode(std::string_view value) {
     return encoded;
 }
 
+// get current UTC time as Nintendo format string (YYYYMMDDhhmmss)
 std::string current_datetime() {
     const std::time_t now = std::time(nullptr);
     std::tm utc_time{};
@@ -52,6 +57,7 @@ std::string current_datetime() {
     return value;
 }
 
+// extract userid parameter value from request body
 std::string request_user_id(const std::string& request) {
     const std::size_t body_start = request.find("\r\n\r\n");
     const std::size_t user_id_start = request.find("userid=", body_start);
@@ -72,6 +78,7 @@ struct LoginSession {
 
 std::unordered_map<std::string, LoginSession> login_sessions;
 
+// extract HTTP body from request (everything after blank line separating headers)
 std::string request_body(const std::string& request) {
     const std::size_t body_start = request.find("\r\n\r\n");
     if (body_start == std::string::npos) {
@@ -82,17 +89,19 @@ std::string request_body(const std::string& request) {
 
 }  // namespace
 
+// generic connectivity check response
 std::string nas_connectivity_response() {
     return "HTTP/1.1 200 OK\r\n"
-           "Content-Type: text/html\r\n"
-           "Content-Length: 2\r\n"
-           "X-Organization: Nintendo\r\n"
-           "Server: BigIP\r\n"
-           "Connection: close\r\n"
-           "\r\n"
-           "ok";
+        "Content-Type: text/html\r\n"
+        "Content-Length: 2\r\n"
+        "X-Organization: Nintendo\r\n"
+        "Server: BigIP\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "ok";
 }
 
+// process NAS login request and generate appropriate response
 std::string nas_response_for_request(const std::string& request) {
     if (request.find("POST /ac ") == std::string::npos ||
         request.find("action=bG9naW4%2A") == std::string::npos) {
@@ -115,11 +124,11 @@ std::string nas_response_for_request(const std::string& request) {
         "&token=" + base64_encode(session.token) +
         "&datetime=" + base64_encode(current_datetime()) + "\r\n";
     return "HTTP/1.1 200 OK\r\n"
-           "Content-Type: text/plain\r\n"
-           "Content-Length: " + std::to_string(login_body.size()) + "\r\n"
-           "NODE: wifiappe1\r\n"
-           "Connection: close\r\n"
-           "\r\n" + login_body;
+        "Content-Type: text/plain\r\n"
+        "Content-Length: " + std::to_string(login_body.size()) + "\r\n"
+        "NODE: wifiappe1\r\n"
+        "Connection: close\r\n"
+        "\r\n" + login_body;
 }
 
 }  // namespace mkwii

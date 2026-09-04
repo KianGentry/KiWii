@@ -24,15 +24,18 @@ std::string random_challenge() {
 
 }  // namespace
 
+// check if this profile message is a keepalive ping
 bool is_profile_keepalive(const std::string& request) {
     return request == keepalive_message;
 }
 
+// return static keepalive response to acknowledge connection is still alive
 const std::string& profile_keepalive_response() {
     static const std::string response = keepalive_message;
     return response;
 }
 
+// generate login challenge message with random 8-character string for client authentication
 std::string profile_login_challenge() {
     return "\\lc\\1\\challenge\\" + random_challenge() + "\\id\\1\\final\\";
 }

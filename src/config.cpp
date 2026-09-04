@@ -7,6 +7,7 @@
 namespace mkwii {
 namespace {
 
+// load required environment variable and throw if missing or empty
 std::string required_environment(const char* name) {
     const char* value = std::getenv(name);
     if (value == nullptr || *value == '\0') {
@@ -15,6 +16,7 @@ std::string required_environment(const char* name) {
     return value;
 }
 
+// load port from environment variable, falling back to default if not set, validate range
 std::uint16_t port_environment(const char* name, std::uint16_t fallback) {
     const char* value = std::getenv(name);
     if (value == nullptr || *value == '\0') {
@@ -30,6 +32,7 @@ std::uint16_t port_environment(const char* name, std::uint16_t fallback) {
 
 }  // namespace
 
+// construct config from environment variables, loading required settings and optional port overrides
 Config config_from_environment() {
     return Config{
         required_environment("MKWII_SERVER_NAME"),

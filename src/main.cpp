@@ -4,6 +4,7 @@
 #include <exception>
 #include <iostream>
 
+// load configuration from environment and run the server
 int main() {
     try {
         const mkwii::Config config = mkwii::config_from_environment();
