@@ -10,5 +10,17 @@ int main() {
     assert(response.find("X-Organization: Nintendo\r\n") != std::string::npos);
     assert(response.find("Server: BigIP\r\n") != std::string::npos);
     assert(response.ends_with("\r\n\r\nok"));
+
+    const std::string login_request =
+        "POST /ac HTTP/1.1\r\n"
+        "Host: naswii.nintendowifi.net\r\n\r\n"
+        "action=bG9naW4%2A&userid=test";
+    const std::string login_response = mkwii::nas_response_for_request(login_request);
+    assert(login_response.find("Content-Type: text/plain\r\n") != std::string::npos);
+    assert(login_response.find("retry=0&returncd=001&locator=gamespy.com&") !=
+           std::string::npos);
+    assert(login_response.ends_with("datetime=20260904000000"));
+
+    assert(mkwii::nas_response_for_request("GET / HTTP/1.1\r\n\r\n") == response);
     return 0;
 }

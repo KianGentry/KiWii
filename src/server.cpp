@@ -150,8 +150,11 @@ void handle_nas_connection(int nas_socket) {
     }
 
     char request[1024];
-    recv(client_socket, request, sizeof(request), 0);
-    const std::string response = nas_connectivity_response();
+    const ssize_t request_size = recv(client_socket, request, sizeof(request), 0);
+    const std::string request_text = request_size > 0
+        ? std::string(request, static_cast<std::size_t>(request_size))
+        : std::string();
+    const std::string response = nas_response_for_request(request_text);
     send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
     close(client_socket);
     std::cout << "NAS connectivity request served\n";

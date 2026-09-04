@@ -7,6 +7,8 @@ namespace mkwii {
 
 std::string nas_connectivity_response();
 
+std::string nas_response_for_request(const std::string& request);
+
 }  // namespace mkwii
 
 #endif  // MKWII_NAS_HTTP_H
