@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <unordered_set>
 #include <vector>
 
 namespace mkwii {
@@ -108,6 +109,7 @@ int open_game_socket(std::uint16_t port) {
 }
 
 void handle_qr_packet(int qr_socket) {
+    static std::unordered_set<std::uint32_t> qr_sessions;
     // allocate buffer and receive a packet from qr socket
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
@@ -126,6 +128,20 @@ void handle_qr_packet(int qr_socket) {
 
     // trim buffer to actual received packet size
     packet.resize(static_cast<std::size_t>(packet_size));
+    if (is_mariokartwii_heartbeat(packet)) {
+        const std::uint32_t session_id = qr_session_id(packet);
+        const std::string state_changed = qr_field_value(packet, "statechanged");
+        if (state_changed == "2") {
+            qr_sessions.erase(session_id);
+        } else {
+            qr_sessions.insert(session_id);
+        }
+        std::cout << "GameSpy QR heartbeat for session " << session_id
+                << " (state " << (state_changed.empty() ? "unchanged" : state_changed)
+                << ")\n";
+        return;
+    }
+
     // verify this is a mario kart wii availability request, ignore if not
     if (!is_mariokartwii_availability_request(packet)) {
         return;
