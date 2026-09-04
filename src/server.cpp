@@ -155,6 +155,10 @@ void handle_profile_connection(int profile_socket) {
     setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout,
             sizeof(receive_timeout));
 
+        const std::string login_challenge = profile_login_challenge();
+        send(client_socket, login_challenge.data(), login_challenge.size(), MSG_NOSIGNAL);
+        std::cout << "GameSpy profile login challenge sent\n";
+
     std::string request_buffer;
     char request_chunk[4096];
     while (true) {
