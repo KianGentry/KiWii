@@ -1,0 +1,15 @@
+services:
+  mkwii-server:
+    build: .
+    environment:
+      MKWII_SERVER_NAME: ${MKWII_SERVER_NAME:?set MKWII_SERVER_NAME in .env}
+      MKWII_ADVERTISED_ADDRESS: ${MKWII_ADVERTISED_ADDRESS:?set MKWII_ADVERTISED_ADDRESS in .env}
+      MKWII_HEALTH_PORT: ${MKWII_HEALTH_PORT:-8080}
+      MKWII_DNS_PORT: ${MKWII_DNS_PORT:-5353}
+      MKWII_GAME_PORT: ${MKWII_GAME_PORT:-28910}
+    ports:
+      - "${MKWII_HEALTH_PORT:-8080}:${MKWII_HEALTH_PORT:-8080}/tcp"
+      - "${MKWII_DNS_PORT:-5353}:${MKWII_DNS_PORT:-5353}/udp"
+      - "${MKWII_GAME_PORT:-28910}:${MKWII_GAME_PORT:-28910}/tcp"
+      - "${MKWII_GAME_PORT:-28910}:${MKWII_GAME_PORT:-28910}/udp"
+    restart: unless-stopped
