@@ -38,6 +38,7 @@ Config config_from_environment() {
         port_environment("MKWII_DNS_PORT", 5353),
         port_environment("MKWII_NAS_PORT", 80),
         port_environment("MKWII_QR_PORT", 27900),
+        port_environment("MKWII_PROFILE_PORT", 29900),
         port_environment("MKWII_GAME_PORT", 28910),
     };
 }

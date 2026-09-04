@@ -144,6 +144,27 @@ void handle_game_connection(int game_socket) {
     close(client_socket);
 }
 
+void handle_profile_connection(int profile_socket) {
+    const int client_socket = accept(profile_socket, nullptr, nullptr);
+    if (client_socket < 0) {
+        return;
+    }
+
+    std::vector<std::uint8_t> packet(4096);
+    const ssize_t packet_size = recv(client_socket, packet.data(), packet.size(), 0);
+    if (packet_size > 0) {
+        packet.resize(static_cast<std::size_t>(packet_size));
+        std::ostringstream formatted_packet;
+        formatted_packet << std::hex << std::setfill('0');
+        for (const std::uint8_t byte : packet) {
+            formatted_packet << std::setw(2) << static_cast<unsigned int>(byte);
+        }
+        std::cout << "GameSpy profile request (" << packet.size()
+                << " bytes): " << formatted_packet.str() << '\n';
+    }
+    close(client_socket);
+}
+
 void handle_nas_connection(int nas_socket) {
     const int client_socket = accept(nas_socket, nullptr, nullptr);
     if (client_socket < 0) {
@@ -230,12 +251,23 @@ int run_server(const Config& config) {
         return 1;
     }
 
+    const int profile_socket = open_game_socket(config.profile_port);
+    if (profile_socket < 0) {
+        std::cerr << "could not bind GameSpy profile port " << config.profile_port << '\n';
+        close(health_socket);
+        close(qr_socket);
+        close(game_socket);
+        close(nas_socket);
+        return 1;
+    }
+
     std::cout << "server '" << config.server_name << "' started\n"
             << "advertised address: " << config.advertised_address << '\n'
             << "health port: " << config.health_port << '\n'
             << "DNS port (reserved): " << config.dns_port << '\n'
             << "NAS HTTP port: " << config.nas_port << '\n'
             << "GameSpy QR port: " << config.qr_port << '\n'
+            << "GameSpy profile port: " << config.profile_port << '\n'
             << "GameSpy browser port: " << config.game_port << '\n';
 
     while (keep_running != 0) {
@@ -246,7 +278,8 @@ int run_server(const Config& config) {
         FD_SET(qr_socket, &readable);
         FD_SET(game_socket, &readable);
         FD_SET(nas_socket, &readable);
-        const int highest_socket = std::max({health_socket, qr_socket, game_socket, nas_socket});
+        FD_SET(profile_socket, &readable);
+        const int highest_socket = std::max({health_socket, qr_socket, game_socket, nas_socket, profile_socket});
 
         if (select(highest_socket + 1, &readable, nullptr, nullptr, &timeout) <= 0) {
             continue;
@@ -262,6 +295,10 @@ int run_server(const Config& config) {
 
         if (FD_ISSET(nas_socket, &readable)) {
             handle_nas_connection(nas_socket);
+        }
+
+        if (FD_ISSET(profile_socket, &readable)) {
+            handle_profile_connection(profile_socket);
         }
 
         if (!FD_ISSET(health_socket, &readable)) {
@@ -287,6 +324,7 @@ int run_server(const Config& config) {
     close(qr_socket);
     close(game_socket);
     close(nas_socket);
+    close(profile_socket);
     std::cout << "server stopped\n";
     return 0;
 }

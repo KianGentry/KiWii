@@ -13,6 +13,7 @@ struct Config {
     std::uint16_t dns_port;
     std::uint16_t nas_port;
     std::uint16_t qr_port;
+    std::uint16_t profile_port;
     std::uint16_t game_port;
 };
 
