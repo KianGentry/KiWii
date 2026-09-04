@@ -9,6 +9,7 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -149,11 +150,43 @@ void handle_nas_connection(int nas_socket) {
         return;
     }
 
-    char request[1024];
-    const ssize_t request_size = recv(client_socket, request, sizeof(request), 0);
-    const std::string request_text = request_size > 0
-        ? std::string(request, static_cast<std::size_t>(request_size))
-        : std::string();
+    timeval receive_timeout{2, 0};
+    setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout,
+            sizeof(receive_timeout));
+
+    std::string request_text;
+    char request_chunk[1024];
+    while (true) {
+        const std::size_t header_end = request_text.find("\r\n\r\n");
+        if (header_end != std::string::npos) {
+            std::size_t content_length = 0;
+            const std::size_t length_start = request_text.find("Content-Length:");
+            if (length_start != std::string::npos) {
+                const std::size_t value_start = length_start + 15;
+                const std::size_t value_end = request_text.find("\r\n", value_start);
+                try {
+                    content_length = std::stoul(request_text.substr(
+                        value_start, value_end - value_start));
+                } catch (const std::exception&) {
+                    content_length = 0;
+                }
+            }
+            if (request_text.size() >= header_end + 4 + content_length) {
+                break;
+            }
+        }
+
+        const ssize_t request_size = recv(client_socket, request_chunk,
+                sizeof(request_chunk), 0);
+        if (request_size <= 0) {
+            break;
+        }
+        request_text.append(request_chunk, static_cast<std::size_t>(request_size));
+        if (request_text.size() > 8192) {
+            break;
+        }
+    }
+
     const std::string response = nas_response_for_request(request_text);
     send(client_socket, response.data(), response.size(), MSG_NOSIGNAL);
     close(client_socket);
