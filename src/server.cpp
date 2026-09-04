@@ -110,6 +110,7 @@ int open_game_socket(std::uint16_t port) {
 
 void handle_qr_packet(int qr_socket) {
     static std::unordered_set<std::uint32_t> qr_sessions;
+    static std::unordered_set<std::uint32_t> qr_challenges;
     // allocate buffer and receive a packet from qr socket
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
@@ -128,13 +129,43 @@ void handle_qr_packet(int qr_socket) {
 
     // trim buffer to actual received packet size
     packet.resize(static_cast<std::size_t>(packet_size));
+    const std::uint32_t session_id = qr_session_id(packet);
+    if (packet.size() >= 5 && packet[0] == 0x01 && qr_challenges.count(session_id) != 0) {
+        const std::vector<std::uint8_t> response = qr_registered_response(session_id);
+        sendto(
+            qr_socket,
+            response.data(),
+            response.size(),
+            0,
+            reinterpret_cast<sockaddr*>(&client_address),
+            client_address_length);
+        qr_challenges.erase(session_id);
+        std::cout << "GameSpy QR session registered: " << session_id << "\n";
+        return;
+    }
+
     if (is_mariokartwii_heartbeat(packet)) {
-        const std::uint32_t session_id = qr_session_id(packet);
         const std::string state_changed = qr_field_value(packet, "statechanged");
         if (state_changed == "2") {
             qr_sessions.erase(session_id);
+            qr_challenges.erase(session_id);
         } else {
-            qr_sessions.insert(session_id);
+            const bool new_session = qr_sessions.insert(session_id).second;
+            if (new_session) {
+                const std::vector<std::uint8_t> response = qr_challenge_response(
+                    session_id,
+                    inet_ntoa(client_address.sin_addr),
+                    ntohs(client_address.sin_port));
+                sendto(
+                    qr_socket,
+                    response.data(),
+                    response.size(),
+                    0,
+                    reinterpret_cast<sockaddr*>(&client_address),
+                    client_address_length);
+                qr_challenges.insert(session_id);
+                std::cout << "GameSpy QR challenge sent for session " << session_id << "\n";
+            }
         }
         std::cout << "GameSpy QR heartbeat for session " << session_id
                 << " (state " << (state_changed.empty() ? "unchanged" : state_changed)

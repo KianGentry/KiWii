@@ -18,6 +18,12 @@ std::string qr_field_value(const std::vector<std::uint8_t>& packet,
 
 std::vector<std::uint8_t> availability_response();
 
+std::vector<std::uint8_t> qr_challenge_response(std::uint32_t session_id,
+	const std::string& address,
+	std::uint16_t port);
+
+std::vector<std::uint8_t> qr_registered_response(std::uint32_t session_id);
+
 }  // namespace mkwii
 
 #endif  // MKWII_GAMESPY_QR_H
