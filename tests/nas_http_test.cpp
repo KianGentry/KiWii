@@ -18,18 +18,19 @@ int main() {
     const std::string login_response = mkwii::nas_response_for_request(login_request);
         assert(login_response.find("Content-Type: text/plain\r\n") != std::string::npos);
         assert(login_response.find("NODE: wifiappe1\r\n") != std::string::npos);
-    assert(login_response.find("retry=0&returncd=001&locator=gamespy.com&") !=
+        assert(login_response.find("retry=MA**&returncd=MDAx&locator=Z2FtZXNweS5jb20*&") !=
            std::string::npos);
         assert(login_response.find("&challenge=") != std::string::npos);
-        assert(login_response.find("&token=NDS") != std::string::npos);
+        assert(login_response.find("&token=TkRT") != std::string::npos);
         assert(login_response.find("&datetime=") != std::string::npos);
+        assert(login_response.ends_with("\r\n"));
         assert(login_response.size() > response.size());
 
         const std::string second_login_response =
             mkwii::nas_response_for_request(login_request);
         assert(second_login_response != login_response);
         assert(second_login_response.find("&challenge=") != std::string::npos);
-        assert(second_login_response.find("&token=NDS") != std::string::npos);
+        assert(second_login_response.find("&token=TkRT") != std::string::npos);
 
     assert(mkwii::nas_response_for_request("GET / HTTP/1.1\r\n\r\n") == response);
     return 0;

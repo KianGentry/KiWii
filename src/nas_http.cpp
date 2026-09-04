@@ -22,6 +22,26 @@ std::string random_text(std::size_t length) {
     return value;
 }
 
+std::string base64_encode(std::string_view value) {
+    constexpr std::string_view alphabet =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string encoded;
+    for (std::size_t index = 0; index < value.size(); index += 3) {
+        const unsigned int first = static_cast<unsigned char>(value[index]);
+        const unsigned int second = index + 1 < value.size()
+            ? static_cast<unsigned char>(value[index + 1]) : 0;
+        const unsigned int third = index + 2 < value.size()
+            ? static_cast<unsigned char>(value[index + 2]) : 0;
+        const unsigned int chunk = (first << 16) | (second << 8) | third;
+
+        encoded += alphabet[(chunk >> 18) & 0x3f];
+        encoded += alphabet[(chunk >> 12) & 0x3f];
+        encoded += index + 1 < value.size() ? alphabet[(chunk >> 6) & 0x3f] : '*';
+        encoded += index + 2 < value.size() ? alphabet[chunk & 0x3f] : '*';
+    }
+    return encoded;
+}
+
 std::string current_datetime() {
     const std::time_t now = std::time(nullptr);
     std::tm utc_time{};
@@ -88,9 +108,12 @@ std::string nas_response_for_request(const std::string& request) {
     login_sessions[user_id] = session;
 
     const std::string login_body =
-        "retry=0&returncd=001&locator=gamespy.com&challenge=" +
-        session.challenge + "&token=" + session.token +
-        "&datetime=" + current_datetime();
+        "retry=" + base64_encode("0") +
+        "&returncd=" + base64_encode("001") +
+        "&locator=" + base64_encode("gamespy.com") +
+        "&challenge=" + base64_encode(session.challenge) +
+        "&token=" + base64_encode(session.token) +
+        "&datetime=" + base64_encode(current_datetime()) + "\r\n";
     return "HTTP/1.1 200 OK\r\n"
            "Content-Type: text/plain\r\n"
            "Content-Length: " + std::to_string(login_body.size()) + "\r\n"
