@@ -10,6 +10,7 @@ int main() {
     setenv("MKWII_DNS_PORT", "15353", 1);
     setenv("MKWII_NAS_PORT", "18080", 1);
     setenv("MKWII_QR_PORT", "27900", 1);
+    setenv("MKWII_NATNEG_PORT", "27901", 1);
     setenv("MKWII_PROFILE_PORT", "29900", 1);
     setenv("MKWII_GAME_PORT", "28910", 1);
 
@@ -20,6 +21,7 @@ int main() {
     assert(config.dns_port == 15353);
     assert(config.nas_port == 18080);
     assert(config.qr_port == 27900);
+    assert(config.natneg_port == 27901);
     assert(config.profile_port == 29900);
     assert(config.game_port == 28910);
     assert(config.gamespy_secret_key == "9r3Rmy");
