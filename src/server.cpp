@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -473,7 +474,7 @@ int run_server(const Config& config) {
         }
 
         if (FD_ISSET(profile_socket, &readable)) {
-            handle_profile_connection(profile_socket);
+            std::thread(handle_profile_connection, profile_socket).detach();
         }
 
         // handle health check requests
