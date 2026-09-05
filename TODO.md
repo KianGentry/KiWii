@@ -4,7 +4,7 @@ Skeleton for full request
 - [x] QR
 - [x] NAS login
 - [x] profile ka
-- [ ] persistent profile session
+- [x] persistent profile session
 - [ ] gamespy browser
 - [ ] NAT negotiation
 
