@@ -20,3 +20,4 @@ Future
 - [ ] web ui
 - [ ] public server list
 - [ ] multiple rooms per server
+- [ ] maybe expand to multiple games
