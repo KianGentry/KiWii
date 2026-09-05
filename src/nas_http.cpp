@@ -96,6 +96,24 @@ std::string request_body(const std::string &request) {
 	return request.substr(body_start + 4);
 }
 
+std::string sake_get_my_records_response() {
+	const std::string body =
+		"<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+		"<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+		"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+		"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+		"<soap:Body>"
+		"<GetMyRecordsResponse xmlns=\"http://gamespy.net/sake\">"
+		"<GetMyRecordsResult>Success</GetMyRecordsResult>"
+		"<values/>"
+		"</GetMyRecordsResponse>"
+		"</soap:Body></soap:Envelope>";
+	return "HTTP/1.1 200 OK\r\n"
+		   "Content-Type: text/xml; charset=utf-8\r\n"
+		   "Content-Length: " + std::to_string(body.size()) + "\r\n"
+		   "Connection: close\r\n\r\n" + body;
+}
+
 } // namespace
 
 LoginCredentials credentials_for_token(const std::string &token) {
@@ -122,6 +140,12 @@ std::string nas_connectivity_response() {
 
 // process NAS login request and generate appropriate response
 std::string nas_response_for_request(const std::string &request) {
+	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") !=
+			std::string::npos &&
+		request.find("GetMyRecords") != std::string::npos) {
+		return sake_get_my_records_response();
+	}
+
 	if (request.find("POST /ac ") == std::string::npos ||
 		request.find("action=bG9naW4%2A") == std::string::npos) {
 		return nas_connectivity_response();

@@ -28,6 +28,18 @@ int main() {
 	assert(login_response.ends_with("\r\n"));
 	assert(login_response.size() > response.size());
 
+	const std::string sake_request =
+		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
+		"SOAPAction: \"http://gamespy.net/sake/GetMyRecords\"\r\n\r\n"
+		"<GetMyRecords/>";
+	const std::string sake_response =
+		mkwii::nas_response_for_request(sake_request);
+	assert(sake_response.find("Content-Type: text/xml; charset=utf-8\r\n") !=
+		   std::string::npos);
+	assert(sake_response.find("<GetMyRecordsResult>Success</GetMyRecordsResult>") !=
+		   std::string::npos);
+	assert(sake_response.find("<values/>") != std::string::npos);
+
 	const std::string second_login_response =
 		mkwii::nas_response_for_request(login_request);
 	assert(second_login_response != login_response);
