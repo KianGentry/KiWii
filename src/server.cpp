@@ -284,6 +284,68 @@ void handle_game_connection(int game_socket) {
 	close(client_socket);
 }
 
+std::string player_search_response(const std::string &request) {
+	std::string response = "\\otherslist\\";
+	const std::size_t opids_marker = request.find("\\opids\\");
+	if (opids_marker != std::string::npos) {
+		const std::size_t value_start = opids_marker + 7;
+		const std::size_t value_end = request.find('\\', value_start);
+		const std::string opids = request.substr(
+			value_start, value_end == std::string::npos
+											? std::string::npos
+											: value_end - value_start);
+			std::size_t start = 0;
+		while (start <= opids.size()) {
+			const std::size_t separator = opids.find('|', start);
+			const std::string opid = opids.substr(
+				start, separator == std::string::npos ? std::string::npos
+															 : separator - start);
+			if (!opid.empty()) {
+				response += "\\o\\" + opid + "\\uniquenick\\";
+			}
+			if (separator == std::string::npos) {
+				break;
+			}
+			start = separator + 1;
+		}
+	}
+	return response + "\\oldone\\\\final\\";
+}
+
+void handle_player_search_connection(int player_search_socket) {
+	const int client_socket =
+		accept(player_search_socket, nullptr, nullptr);
+	if (client_socket < 0) {
+		return;
+	}
+	set_receive_timeout(client_socket, 5);
+
+	std::string request_buffer;
+	char request_chunk[4096];
+	while (true) {
+		const ssize_t packet_size =
+			recv(client_socket, request_chunk, sizeof(request_chunk), 0);
+		if (packet_size <= 0) {
+			break;
+		}
+		request_buffer.append(request_chunk, static_cast<std::size_t>(packet_size));
+		while (true) {
+			const std::size_t message_end = request_buffer.find("\\final\\");
+			if (message_end == std::string::npos) {
+				break;
+			}
+			const std::size_t message_size = message_end + 7;
+			const std::string request = request_buffer.substr(0, message_size);
+			request_buffer.erase(0, message_size);
+			std::cout << "GameSpy player search request: " << request << '\n';
+			const std::string response = player_search_response(request);
+			send_all(client_socket, response.data(), response.size());
+			std::cout << "GameSpy player search response sent\n";
+		}
+	}
+	close(client_socket);
+}
+
 void handle_profile_connection(int profile_socket) {
 	// accept incoming tcp connection from client
 	const int client_socket = accept(profile_socket, nullptr, nullptr);
@@ -528,6 +590,20 @@ int run_server(const Config &config) {
 		return 1;
 	}
 
+	const int player_search_socket =
+		open_game_socket(config.player_search_port);
+	if (player_search_socket < 0) {
+		std::cerr << "could not bind GameSpy player search port "
+				  << config.player_search_port << '\n';
+		close(health_socket);
+		close(qr_socket);
+		close(natneg_socket);
+		close(game_socket);
+		close(nas_socket);
+		close(profile_socket);
+		return 1;
+	}
+
 	std::cout << "server '" << config.server_name << "' started\n"
 			  << "advertised address: " << config.advertised_address << '\n'
 			  << "health port: " << config.health_port << '\n'
@@ -536,6 +612,8 @@ int run_server(const Config &config) {
 			  << "GameSpy QR port: " << config.qr_port << '\n'
 			  << "GameSpy NATNEG port: " << config.natneg_port << '\n'
 			  << "GameSpy profile port: " << config.profile_port << '\n'
+			  << "GameSpy player search port: " << config.player_search_port
+			  << '\n'
 			  << "GameSpy browser port: " << config.game_port << '\n';
 
 	std::vector<std::thread> connection_workers;
@@ -553,9 +631,10 @@ int run_server(const Config &config) {
 		FD_SET(game_socket, &readable);
 		FD_SET(nas_socket, &readable);
 		FD_SET(profile_socket, &readable);
+		FD_SET(player_search_socket, &readable);
 		const int highest_socket =
 			std::max({health_socket, qr_socket, natneg_socket, game_socket, nas_socket,
-					  profile_socket});
+					  profile_socket, player_search_socket});
 
 		// select waits for any of these sockets to become readable, or timeout
 		// after 1 second
@@ -589,6 +668,11 @@ int run_server(const Config &config) {
 											profile_socket);
 		}
 
+		if (FD_ISSET(player_search_socket, &readable)) {
+			connection_workers.emplace_back(handle_player_search_connection,
+											player_search_socket);
+		}
+
 		// handle health check requests
 		if (!FD_ISSET(health_socket, &readable)) {
 			continue;
@@ -620,6 +704,7 @@ int run_server(const Config &config) {
 	close(game_socket);
 	close(nas_socket);
 	close(profile_socket);
+	close(player_search_socket);
 	std::cout << "server stopped\n";
 	return 0;
 }

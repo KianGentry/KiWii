@@ -15,8 +15,8 @@ docker compose up -d
 ```
 
 The container currently provides health, GameSpy QR registration, the initial
-GameSpy NATNEG acknowledgement, and the plain HTTP NAS connectivity response.
-See TODO for what is unfinished.
+GameSpy NATNEG acknowledgement, the GameSpy player-search response, and the
+plain HTTP NAS connectivity response. See TODO for what is unfinished.
 
 ## From source
 
