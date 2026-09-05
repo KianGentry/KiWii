@@ -114,6 +114,24 @@ std::string sake_get_my_records_response() {
 		   "Connection: close\r\n\r\n" + body;
 }
 
+std::string sake_create_record_response() {
+	const std::string body =
+		"<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+		"<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+		"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+		"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+		"<soap:Body>"
+		"<CreateRecordResponse xmlns=\"http://gamespy.net/sake\">"
+		"<CreateRecordResult>Success</CreateRecordResult>"
+		"<recordid>1</recordid>"
+		"</CreateRecordResponse>"
+		"</soap:Body></soap:Envelope>";
+	return "HTTP/1.1 200 OK\r\n"
+		   "Content-Type: text/xml; charset=utf-8\r\n"
+		   "Content-Length: " + std::to_string(body.size()) + "\r\n"
+		   "Connection: close\r\n\r\n" + body;
+}
+
 } // namespace
 
 LoginCredentials credentials_for_token(const std::string &token) {
@@ -144,6 +162,11 @@ std::string nas_response_for_request(const std::string &request) {
 			std::string::npos &&
 		request.find("GetMyRecords") != std::string::npos) {
 		return sake_get_my_records_response();
+	}
+	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") !=
+			std::string::npos &&
+		request.find("CreateRecord") != std::string::npos) {
+		return sake_create_record_response();
 	}
 
 	if (request.find("POST /ac ") == std::string::npos ||

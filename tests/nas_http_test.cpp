@@ -40,6 +40,18 @@ int main() {
 		   std::string::npos);
 	assert(sake_response.find("<values/>") != std::string::npos);
 
+	const std::string create_record_request =
+		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
+		"SOAPAction: \"http://gamespy.net/sake/CreateRecord\"\r\n\r\n"
+		"<CreateRecord/>";
+	const std::string create_record_response =
+		mkwii::nas_response_for_request(create_record_request);
+	assert(create_record_response.find(
+			   "<CreateRecordResult>Success</CreateRecordResult>") !=
+		   std::string::npos);
+	assert(create_record_response.find("<recordid>1</recordid>") !=
+		   std::string::npos);
+
 	const std::string second_login_response =
 		mkwii::nas_response_for_request(login_request);
 	assert(second_login_response != login_response);
