@@ -192,9 +192,9 @@ bool qr_challenge_matches(const std::vector<std::uint8_t> &packet,
 	}
 
 	std::vector<std::uint8_t> plaintext(challenge.begin(), challenge.end());
-	plaintext.push_back(0x00);
-	const std::vector<std::uint8_t> encrypted =
+	std::vector<std::uint8_t> encrypted =
 		rc4_transform(secret_key, plaintext);
+	encrypted.push_back(0x00);
 	const std::string expected = base64_encode(encrypted);
 	const auto response_begin = packet.begin() + 5;
 	const auto response_end =
@@ -210,9 +210,10 @@ qr_client_challenge_response(std::uint32_t session_id,
 		return {};
 	}
 	std::vector<std::uint8_t> plaintext(challenge.begin(), challenge.end());
-	plaintext.push_back(0x00);
-	const std::string encoded =
-		base64_encode(rc4_transform(secret_key, plaintext));
+	std::vector<std::uint8_t> encrypted =
+		rc4_transform(secret_key, plaintext);
+	encrypted.push_back(0x00);
+	const std::string encoded = base64_encode(encrypted);
 	std::vector<std::uint8_t> response = {
 		0x01,
 		static_cast<std::uint8_t>(session_id & 0xff),
