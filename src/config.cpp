@@ -30,6 +30,11 @@ std::uint16_t port_environment(const char* name, std::uint16_t fallback) {
     return static_cast<std::uint16_t>(port);
 }
 
+std::string optional_environment(const char* name, const char* fallback) {
+    const char* value = std::getenv(name);
+    return value == nullptr || *value == '\0' ? fallback : value;
+}
+
 }  // namespace
 
 // construct config from environment variables, loading required settings and optional port overrides
@@ -43,6 +48,7 @@ Config config_from_environment() {
         port_environment("MKWII_QR_PORT", 27900),
         port_environment("MKWII_PROFILE_PORT", 29900),
         port_environment("MKWII_GAME_PORT", 28910),
+        optional_environment("MKWII_GAMESPY_SECRET_KEY", "9r3Rmy"),
     };
 }
 

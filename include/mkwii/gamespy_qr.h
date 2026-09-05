@@ -24,6 +24,14 @@ std::vector<std::uint8_t> qr_challenge_response(std::uint32_t session_id,
 
 std::vector<std::uint8_t> qr_registered_response(std::uint32_t session_id);
 
+bool qr_challenge_matches(const std::vector<std::uint8_t>& packet,
+	const std::string& challenge,
+	const std::string& secret_key);
+
+std::vector<std::uint8_t> qr_client_challenge_response(std::uint32_t session_id,
+	const std::string& challenge,
+	const std::string& secret_key);
+
 }  // namespace mkwii
 
 #endif  // MKWII_GAMESPY_QR_H

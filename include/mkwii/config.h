@@ -15,6 +15,7 @@ struct Config {
     std::uint16_t qr_port;
     std::uint16_t profile_port;
     std::uint16_t game_port;
+    std::string gamespy_secret_key;
 };
 
 Config config_from_environment();

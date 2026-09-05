@@ -22,5 +22,6 @@ int main() {
     assert(config.qr_port == 27900);
     assert(config.profile_port == 29900);
     assert(config.game_port == 28910);
+    assert(config.gamespy_secret_key == "9r3Rmy");
     return 0;
 }

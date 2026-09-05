@@ -18,6 +18,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 namespace mkwii {
@@ -109,9 +110,9 @@ int open_game_socket(std::uint16_t port) {
     return socket_fd;
 }
 
-void handle_qr_packet(int qr_socket) {
+void handle_qr_packet(int qr_socket, const std::string& secret_key) {
     static std::unordered_set<std::uint32_t> qr_sessions;
-    static std::unordered_set<std::uint32_t> qr_challenges;
+    static std::unordered_map<std::uint32_t, std::string> qr_challenges;
     // allocate buffer and receive a packet from qr socket
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
@@ -131,7 +132,9 @@ void handle_qr_packet(int qr_socket) {
     // trim buffer to actual received packet size
     packet.resize(static_cast<std::size_t>(packet_size));
     const std::uint32_t session_id = qr_session_id(packet);
-    if (packet.size() >= 5 && packet[0] == 0x01 && qr_challenges.count(session_id) != 0) {
+    const auto challenge = qr_challenges.find(session_id);
+    if (packet.size() >= 5 && packet[0] == 0x01 && challenge != qr_challenges.end() &&
+        qr_challenge_matches(packet, challenge->second, secret_key)) {
         const std::vector<std::uint8_t> response = qr_registered_response(session_id);
         sendto(
             qr_socket,
@@ -140,7 +143,7 @@ void handle_qr_packet(int qr_socket) {
             0,
             reinterpret_cast<sockaddr*>(&client_address),
             client_address_length);
-        qr_challenges.erase(session_id);
+        qr_challenges.erase(challenge);
         std::cout << "GameSpy QR session registered: " << session_id << "\n";
         return;
     }
@@ -164,7 +167,9 @@ void handle_qr_packet(int qr_socket) {
                     0,
                     reinterpret_cast<sockaddr*>(&client_address),
                     client_address_length);
-                qr_challenges.insert(session_id);
+                const auto challenge_end = std::find(response.begin() + 7, response.end(), 0x00);
+                qr_challenges.emplace(session_id,
+                    std::string(response.begin() + 7, challenge_end));
                 std::cout << "GameSpy QR challenge sent for session " << session_id << "\n";
             }
         }
@@ -462,7 +467,7 @@ int run_server(const Config& config) {
 
         // check which sockets are ready to read and dispatch to appropriate handler
         if (FD_ISSET(qr_socket, &readable)) {
-            handle_qr_packet(qr_socket);
+            handle_qr_packet(qr_socket, config.gamespy_secret_key);
         }
 
         if (FD_ISSET(game_socket, &readable)) {

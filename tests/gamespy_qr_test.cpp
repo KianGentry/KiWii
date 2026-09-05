@@ -1,5 +1,6 @@
 #include "mkwii/gamespy_qr.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <vector>
@@ -57,6 +58,14 @@ int main() {
 
         assert((mkwii::qr_registered_response(0x053795ef) ==
             std::vector<std::uint8_t>{0xfe, 0xfd, 0x0a, 0xef, 0x95, 0x37, 0x05}));
+        const std::string challenge_text(challenge.begin() + 7,
+            std::find(challenge.begin() + 7, challenge.end(), 0x00));
+        const std::vector<std::uint8_t> client_response =
+            mkwii::qr_client_challenge_response(0x053795ef, challenge_text, "9r3Rmy");
+        assert(mkwii::qr_challenge_matches(client_response, challenge_text, "9r3Rmy"));
+        std::vector<std::uint8_t> invalid_response = client_response;
+        invalid_response[5] ^= 0x01;
+        assert(!mkwii::qr_challenge_matches(invalid_response, challenge_text, "9r3Rmy"));
 
     std::vector<std::uint8_t> wrong_command = request;
     wrong_command[0] = 0x00;
