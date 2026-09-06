@@ -3,6 +3,7 @@
 #include "mkwii/gamespy_natneg.h"
 
 #include <arpa/inet.h>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -21,6 +22,7 @@ struct NatNegSessionClient {
     NatNegClient client;
     std::vector<std::uint8_t> init_packet;
     sockaddr_in endpoint;
+    std::chrono::steady_clock::time_point last_seen;
 };
 
 std::map<std::uint32_t, std::map<std::uint8_t, NatNegSessionClient>> natneg_sessions;
@@ -41,8 +43,21 @@ void handle_natneg_packet(int natneg_socket) {
     packet.resize(static_cast<std::size_t>(packet_size));
     NatNegClient client{};
     if (!parse_natneg_init(packet, client)) {
+        if (packet.size() >= 8 && packet[7] == 0x06) {
+            const std::vector<std::uint8_t> response = natneg_connect_ack(packet);
+            sendto(natneg_socket, response.data(), response.size(), 0,
+                   reinterpret_cast<sockaddr *>(&client_address), client_address_length);
+        } else if (packet.size() >= 8 && packet[7] == 0x0a) {
+            const std::vector<std::uint8_t> response = natneg_address_reply(
+                packet, client_address.sin_addr.s_addr, ntohs(client_address.sin_port));
+            if (!response.empty()) {
+                sendto(natneg_socket, response.data(), response.size(), 0,
+                       reinterpret_cast<sockaddr *>(&client_address), client_address_length);
+            }
+        }
         return;
     }
+    const auto now = std::chrono::steady_clock::now();
     std::ostringstream formatted_packet;
     formatted_packet << std::hex << std::setfill('0');
     for (const std::uint8_t byte : packet) {
@@ -58,8 +73,23 @@ void handle_natneg_packet(int natneg_socket) {
            reinterpret_cast<sockaddr *>(&client_address), client_address_length);
 
     std::lock_guard<std::mutex> lock(natneg_sessions_mutex);
+    for (auto session_iterator = natneg_sessions.begin();
+         session_iterator != natneg_sessions.end();) {
+        bool active = false;
+        for (const auto &[index, stored_client] : session_iterator->second) {
+            if (now - stored_client.last_seen < std::chrono::seconds(30)) {
+                active = true;
+                break;
+            }
+        }
+        if (!active) {
+            session_iterator = natneg_sessions.erase(session_iterator);
+        } else {
+            ++session_iterator;
+        }
+    }
     auto &session = natneg_sessions[client.session_id];
-    session[client.client_index] = {client, packet, client_address};
+    session[client.client_index] = {client, packet, client_address, now};
     if (session.size() == 2) {
         auto first = session.begin();
         auto second = std::next(first);

@@ -2,6 +2,7 @@
 #define MKWII_GAMESPY_SESSIONS_H
 
 #include <cstdint>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -18,6 +19,7 @@ struct OnlineSession {
 
 void upsert_online_session(const OnlineSession &session);
 void remove_online_session(std::uint32_t session_id);
+void prune_online_sessions(std::chrono::seconds max_age);
 std::vector<OnlineSession> online_sessions_for_profiles(
 	const std::vector<std::string> &profile_ids);
 

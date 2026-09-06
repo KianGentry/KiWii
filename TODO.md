@@ -8,7 +8,7 @@
 - [ ] Add focused profile idle-session/keepalive tests
 - [x] Add focused Sake SOAP response tests for every supported action
 - [ ] Add a recorded-packet integration test for the complete login-to-menu flow
-- [ ] Verify the current Docker image after the source-file split
+- [x] Verify the current Docker image after the source-file split
 - [ ] Update the startup log to report all configured listeners consistently
 
 ## Sake FriendInfo
@@ -30,7 +30,7 @@
 - [ ] Capture and decode the Player Search request/response sequence in detail
 - [x] Define the online-player/session model
 - [x] Track QR-registered clients by profile, game, public endpoint, and session
-- [x] Remove registered clients on `statechanged=2`
+- [x] Remove registered clients on timeout or `statechanged=2`
 - [x] Return only real active clients from Player Search
 - [x] Keep the empty-player response correct when nobody is online
 - [ ] Add a configurable synthetic opponent for one-client protocol testing
@@ -47,10 +47,10 @@
 - [x] Implement `NN_INIT` and `NN_INITACK` using captured packets
 - [x] Implement the first observed `NN_CONNECT` exchange
 - [ ] Implement NAT type and endpoint fields from real captures
-- [ ] Add NATNEG timeout and session cleanup
+- [x] Add NATNEG timeout and session cleanup
 - [ ] Determine whether this Mario Kart Wii revision uses NATNEG or the relay path
 - [ ] Support both raw/no-SSL and TLS relay handshakes
-- [ ] Detect TLS by the initial record bytes instead of assuming TLS
+- [x] Detect TLS by the initial record bytes instead of assuming TLS
 - [ ] Keep the no-SSL patched-client path working
 - [ ] Parse the decrypted relay/session payloads
 - [ ] Implement the relay/session acknowledgement required by the client
@@ -76,7 +76,7 @@
 ## Internet Deployment
 
 - [ ] Configure `MKWII_ADVERTISED_ADDRESS` for the public address or hostname
-- [ ] Document required router forwarding for TCP and UDP ports
+- [x] Document required router forwarding for TCP and UDP ports
 - [ ] Forward DNS port `53` TCP/UDP to KiWii
 - [ ] Forward NAS TCP `80`
 - [ ] Forward QR UDP `27900`
@@ -88,7 +88,7 @@
 - [ ] Verify the host is not behind CGNAT
 - [ ] Add dynamic DNS guidance for changing public IPs
 - [ ] Add host firewall rules and verification commands
-- [ ] Ensure Docker publishes every required protocol/port
+- [x] Ensure Docker publishes every currently implemented protocol/port
 - [ ] Verify DNS answers from an external network
 - [ ] Verify each TCP service from an external network
 - [ ] Verify UDP QR/NATNEG/relay reachability externally
@@ -119,7 +119,7 @@
 - [ ] Document Dolphin network configuration
 - [ ] Document the no-SSL patch as optional compatibility tooling
 - [ ] Document LAN-only testing
-- [ ] Document Internet deployment and port forwarding
+- [x] Document Internet deployment and port forwarding
 - [ ] Document troubleshooting with `ss`, `tcpdump`, `tshark`, and logs
 - [ ] Add a protocol architecture overview
 - [ ] Add a capture-driven development guide

@@ -72,4 +72,31 @@ std::vector<std::uint8_t> natneg_connect(
 	return response;
 }
 
+std::vector<std::uint8_t> natneg_connect_ack(
+	const std::vector<std::uint8_t> &packet) {
+	if (!has_natneg_header(packet) || packet[7] != 0x06) {
+		return {};
+	}
+	std::vector<std::uint8_t> response(packet.begin(), packet.end());
+	response[7] = 0x06;
+	return response;
+}
+
+std::vector<std::uint8_t> natneg_address_reply(
+	const std::vector<std::uint8_t> &packet, std::uint32_t address,
+	std::uint16_t port) {
+	if (!has_natneg_header(packet) || packet[7] != 0x0a || packet.size() < 21) {
+		return {};
+	}
+	std::vector<std::uint8_t> response(packet);
+	response[7] = 0x0b;
+	response[15] = static_cast<std::uint8_t>(address & 0xff);
+	response[16] = static_cast<std::uint8_t>((address >> 8) & 0xff);
+	response[17] = static_cast<std::uint8_t>((address >> 16) & 0xff);
+	response[18] = static_cast<std::uint8_t>((address >> 24) & 0xff);
+	response[19] = static_cast<std::uint8_t>((port >> 8) & 0xff);
+	response[20] = static_cast<std::uint8_t>(port & 0xff);
+	return response;
+}
+
 }  // namespace mkwii

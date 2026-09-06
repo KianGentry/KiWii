@@ -48,6 +48,8 @@ int run_server(const Config &config) {
     if (!open_socket(qr_socket, "GameSpy QR port")) return 1;
     const int dns_socket = open_udp_socket(config.dns_port);
     if (!open_socket(dns_socket, "DNS port")) return 1;
+    const int dns_tcp_socket = open_tcp_socket(config.dns_port);
+    if (!open_socket(dns_tcp_socket, "DNS TCP port")) return 1;
     const int natneg_socket = open_udp_socket(config.natneg_port);
     if (!open_socket(natneg_socket, "GameSpy NATNEG port")) return 1;
     const int game_socket = open_tcp_socket(config.game_port);
@@ -97,6 +99,10 @@ int run_server(const Config &config) {
         }
         if (FD_ISSET(dns_socket, &readable)) {
             handle_dns_packet(dns_socket, config.advertised_address);
+        }
+        if (FD_ISSET(dns_tcp_socket, &readable)) {
+            workers.emplace_back(handle_dns_tcp_connection, dns_tcp_socket,
+                                 config.advertised_address);
         }
         if (FD_ISSET(natneg_socket, &readable)) {
             handle_natneg_packet(natneg_socket);

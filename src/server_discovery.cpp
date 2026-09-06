@@ -35,8 +35,45 @@ void handle_dns_packet(int dns_socket, const std::string &address) {
            reinterpret_cast<sockaddr *>(&client_address), client_address_length);
 }
 
+void handle_dns_tcp_connection(int dns_socket, const std::string &address) {
+    const int client_socket = accept(dns_socket, nullptr, nullptr);
+    if (client_socket < 0) {
+        return;
+    }
+    std::uint8_t length_bytes[2]{};
+    if (recv(client_socket, length_bytes, sizeof(length_bytes), MSG_WAITALL) !=
+        static_cast<ssize_t>(sizeof(length_bytes))) {
+        close(client_socket);
+        return;
+    }
+    const std::size_t request_size =
+        (static_cast<std::size_t>(length_bytes[0]) << 8) | length_bytes[1];
+    if (request_size == 0 || request_size > 4096) {
+        close(client_socket);
+        return;
+    }
+    std::vector<std::uint8_t> request(request_size);
+    if (recv(client_socket, request.data(), request.size(), MSG_WAITALL) !=
+        static_cast<ssize_t>(request.size())) {
+        close(client_socket);
+        return;
+    }
+    const std::vector<std::uint8_t> response = dns_a_response(request, address);
+    if (!response.empty() && response.size() <= 65535) {
+        const std::uint8_t response_length[] = {
+            static_cast<std::uint8_t>((response.size() >> 8) & 0xff),
+            static_cast<std::uint8_t>(response.size() & 0xff)};
+        send_all(client_socket, reinterpret_cast<const char *>(response_length),
+                 sizeof(response_length));
+        send_all(client_socket, reinterpret_cast<const char *>(response.data()),
+                 response.size());
+    }
+    close(client_socket);
+}
+
 void handle_qr_packet(int qr_socket, const std::string &secret_key) {
     static std::unordered_map<std::uint32_t, std::string> qr_challenges;
+    prune_online_sessions(std::chrono::seconds(30));
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
     socklen_t client_address_length = sizeof(client_address);
@@ -109,15 +146,28 @@ void handle_relay_connection(int relay_socket, SSL_CTX *ssl_context) {
         return;
     }
     set_receive_timeout(client_socket, 5);
-    SSL *ssl = SSL_new(ssl_context);
-    if (ssl == nullptr || SSL_set_fd(ssl, client_socket) != 1 || SSL_accept(ssl) != 1) {
-        std::cerr << "GameSpy relay TLS handshake failed\n";
-        SSL_free(ssl);
+    std::vector<std::uint8_t> packet(4096);
+    std::uint8_t first_byte = 0;
+    const ssize_t peek_size = recv(client_socket, &first_byte, sizeof(first_byte), MSG_PEEK);
+    if (peek_size <= 0) {
         close(client_socket);
         return;
     }
-    std::vector<std::uint8_t> packet(4096);
-    const int packet_size = SSL_read(ssl, packet.data(), static_cast<int>(packet.size()));
+    int packet_size = 0;
+    SSL *ssl = nullptr;
+    if (first_byte == 0x16) {
+        ssl = SSL_new(ssl_context);
+        if (ssl == nullptr || SSL_set_fd(ssl, client_socket) != 1 || SSL_accept(ssl) != 1) {
+            std::cerr << "GameSpy relay TLS handshake failed\n";
+            SSL_free(ssl);
+            close(client_socket);
+            return;
+        }
+        packet_size = SSL_read(ssl, packet.data(), static_cast<int>(packet.size()));
+    } else {
+        packet_size = static_cast<int>(recv(client_socket, packet.data(), packet.size(), 0));
+        std::cout << "GameSpy relay raw connection accepted\n";
+    }
     if (packet_size > 0) {
         packet.resize(static_cast<std::size_t>(packet_size));
         std::ostringstream formatted_packet;
@@ -128,12 +178,15 @@ void handle_relay_connection(int relay_socket, SSL_CTX *ssl_context) {
         std::cout << "GameSpy relay request (" << packet.size()
                   << " bytes): " << formatted_packet.str() << '\n';
     }
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
+    if (ssl != nullptr) {
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
+    }
     close(client_socket);
 }
 
 std::string player_search_response(const std::string &request) {
+    prune_online_sessions(std::chrono::seconds(30));
     std::string response = "\\otherslist\\";
     std::vector<std::string> requested_profiles;
     const std::size_t opids_marker = request.find("\\opids\\");

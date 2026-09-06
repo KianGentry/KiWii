@@ -22,6 +22,11 @@ std::vector<std::uint8_t> natneg_init_ack(
 	const std::vector<std::uint8_t> &init_packet);
 std::vector<std::uint8_t> natneg_connect(const std::vector<std::uint8_t> &init_packet,
 	const NatNegClient &peer);
+std::vector<std::uint8_t> natneg_connect_ack(
+	const std::vector<std::uint8_t> &packet);
+std::vector<std::uint8_t> natneg_address_reply(
+	const std::vector<std::uint8_t> &packet, std::uint32_t address,
+	std::uint16_t port);
 
 }  // namespace mkwii
 

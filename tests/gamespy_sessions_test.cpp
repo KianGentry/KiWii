@@ -18,5 +18,8 @@ int main() {
 		mkwii::online_sessions_for_profiles({"101", "202"});
 	assert(remaining.size() == 1);
 	assert(remaining[0].unique_nick == "Bob");
+
+	mkwii::prune_online_sessions(std::chrono::seconds(0));
+	assert(mkwii::online_sessions_for_profiles({"202"}).empty());
 	return 0;
 }
