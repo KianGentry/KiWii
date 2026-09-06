@@ -72,7 +72,7 @@ int run_server(const Config &config) {
 
     std::cout << "server '" << config.server_name << "' started\n"
               << "advertised address: " << config.advertised_address << '\n'
-              << "DNS port: " << config.dns_port << '\n'
+              << "DNS UDP/TCP port: " << config.dns_port << '\n'
               << "NAS HTTP port: " << config.nas_port << '\n'
               << "GameSpy QR port: " << config.qr_port << '\n'
               << "GameSpy NATNEG port: " << config.natneg_port << '\n'

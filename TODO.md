@@ -3,13 +3,13 @@
 ## Immediate
 
 - [ ] Remove the remaining legacy duplicate implementations from `src/server.cpp`
-- [ ] Replace deprecated OpenSSL RSA generation calls with EVP key-generation APIs
+- [x] Replace deprecated OpenSSL RSA generation calls with EVP key-generation APIs
 - [x] Add focused DNS protocol tests
 - [ ] Add focused profile idle-session/keepalive tests
 - [x] Add focused Sake SOAP response tests for every supported action
 - [ ] Add a recorded-packet integration test for the complete login-to-menu flow
 - [x] Verify the current Docker image after the source-file split
-- [ ] Update the startup log to report all configured listeners consistently
+- [x] Update the startup log to report all configured listeners consistently
 
 ## Sake FriendInfo
 
@@ -27,7 +27,7 @@
 
 ## Matchmaking Services
 
-- [ ] Capture and decode the Player Search request/response sequence in detail
+- [x] Capture and decode the Player Search request/response sequence in detail
 - [x] Define the online-player/session model
 - [x] Track QR-registered clients by profile, game, public endpoint, and session
 - [x] Remove registered clients on timeout or `statechanged=2`
@@ -49,7 +49,7 @@
 - [ ] Implement NAT type and endpoint fields from real captures
 - [x] Add NATNEG timeout and session cleanup
 - [ ] Determine whether this Mario Kart Wii revision uses NATNEG or the relay path
-- [ ] Support both raw/no-SSL and TLS relay handshakes
+- [x] Support both raw/no-SSL and TLS relay handshakes
 - [x] Detect TLS by the initial record bytes instead of assuming TLS
 - [ ] Keep the no-SSL patched-client path working
 - [ ] Parse the decrypted relay/session payloads

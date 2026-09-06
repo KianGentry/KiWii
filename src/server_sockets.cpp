@@ -8,9 +8,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <openssl/bn.h>
 #include <openssl/evp.h>
-#include <openssl/rsa.h>
 #include <openssl/x509.h>
 
 #include <sstream>
@@ -82,23 +80,20 @@ SSL_CTX *create_relay_ssl_context() {
         return nullptr;
     }
     SSL_CTX_set_min_proto_version(context, TLS1_2_VERSION);
-    EVP_PKEY *key = EVP_PKEY_new();
-    RSA *rsa = RSA_new();
-    BIGNUM *exponent = BN_new();
+    EVP_PKEY_CTX *key_context = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
+    EVP_PKEY *key = nullptr;
     X509 *certificate = X509_new();
-    if (key == nullptr || rsa == nullptr || exponent == nullptr ||
-        certificate == nullptr || BN_set_word(exponent, RSA_F4) != 1 ||
-        RSA_generate_key_ex(rsa, 2048, exponent, nullptr) != 1 ||
-        EVP_PKEY_assign_RSA(key, rsa) != 1) {
-        BN_free(exponent);
-        RSA_free(rsa);
+    if (key_context == nullptr || certificate == nullptr ||
+        EVP_PKEY_keygen_init(key_context) != 1 ||
+        EVP_PKEY_CTX_set_rsa_keygen_bits(key_context, 2048) != 1 ||
+        EVP_PKEY_keygen(key_context, &key) != 1) {
+        EVP_PKEY_CTX_free(key_context);
         EVP_PKEY_free(key);
         X509_free(certificate);
         SSL_CTX_free(context);
         return nullptr;
     }
-    rsa = nullptr;
-    BN_free(exponent);
+    EVP_PKEY_CTX_free(key_context);
     X509_set_version(certificate, 2);
     ASN1_INTEGER_set(X509_get_serialNumber(certificate), 1);
     X509_gmtime_adj(X509_get_notBefore(certificate), 0);
