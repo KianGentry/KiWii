@@ -49,14 +49,12 @@ int open_socket(int type, std::uint16_t port) {
         return -1;
     }
     int reuse_address = 1;
-    setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_address,
-               sizeof(reuse_address));
+    setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_address, sizeof(reuse_address));
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_ANY);
     address.sin_port = htons(port);
-    if (bind(socket_fd, reinterpret_cast<sockaddr *>(&address),
-             sizeof(address)) < 0) {
+    if (bind(socket_fd, reinterpret_cast<sockaddr *>(&address), sizeof(address)) < 0) {
         close(socket_fd);
         return -1;
     }

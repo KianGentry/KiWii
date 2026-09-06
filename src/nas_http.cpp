@@ -14,8 +14,7 @@ std::string random_text(std::size_t length) {
 	static std::mt19937 generator(std::random_device{}());
 	constexpr std::string_view alphabet =
 		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-	std::uniform_int_distribution<std::size_t> distribution(0, alphabet.size() -
-																   1);
+	std::uniform_int_distribution<std::size_t> distribution(0, alphabet.size() - 1);
 
 	std::string value;
 	value.reserve(length);

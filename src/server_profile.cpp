@@ -17,8 +17,7 @@ void handle_profile_connection(int profile_socket) {
         return;
     }
     int keepalive = 1;
-    setsockopt(client_socket, SOL_SOCKET, SO_KEEPALIVE, &keepalive,
-               sizeof(keepalive));
+    setsockopt(client_socket, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
     const std::string login_challenge = profile_login_challenge();
     LoginCredentials credentials;
     std::string firstname;
