@@ -51,7 +51,7 @@ bool send_all(int socket_fd, const char *data, std::size_t size) {
 void set_receive_timeout(int socket_fd, int seconds) {
 	const timeval receive_timeout{seconds, 0};
 	setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout,
-			   sizeof(receive_timeout));
+				sizeof(receive_timeout));
 }
 
 /* SERVICES, socket binding */
@@ -67,7 +67,7 @@ int open_health_socket(std::uint16_t port) {
 	// avoiding "Address already in use" errors
 	int reuse_address = 1;
 	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_address,
-			   sizeof(reuse_address));
+				sizeof(reuse_address));
 
 	// configure address structure to listen on all interfaces (INADDR_ANY)
 	sockaddr_in address{};
@@ -78,7 +78,7 @@ int open_health_socket(std::uint16_t port) {
 	// bind socket to the configured address and start listening for incoming
 	// connections
 	if (bind(socket_fd, reinterpret_cast<sockaddr *>(&address),
-			 sizeof(address)) < 0 ||
+				sizeof(address)) < 0 ||
 		listen(socket_fd, 8) < 0) {
 		close(socket_fd);
 		return -1;
@@ -96,7 +96,7 @@ int open_qr_socket(std::uint16_t port) {
 	// set SO_REUSEADDR for same reasons as health socket
 	int reuse_address = 1;
 	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_address,
-			   sizeof(reuse_address));
+				sizeof(reuse_address));
 
 	// configure to listen on all interfaces
 	sockaddr_in address{};
@@ -106,11 +106,66 @@ int open_qr_socket(std::uint16_t port) {
 
 	// bind udp socket (udp doesn't require listen)
 	if (bind(socket_fd, reinterpret_cast<sockaddr *>(&address),
-			 sizeof(address)) < 0) {
+				sizeof(address)) < 0) {
 		close(socket_fd);
 		return -1;
 	}
 	return socket_fd;
+}
+
+void handle_dns_packet(int dns_socket, const std::string &address) {
+	std::vector<std::uint8_t> request(512);
+	sockaddr_in client_address{};
+	socklen_t client_address_length = sizeof(client_address);
+	const ssize_t packet_size = recvfrom(
+		dns_socket, request.data(), request.size(), 0,
+		reinterpret_cast<sockaddr *>(&client_address), &client_address_length);
+	if (packet_size < 12) {
+		return;
+	}
+	request.resize(static_cast<std::size_t>(packet_size));
+
+	std::size_t question_end = 12;
+	while (question_end < request.size() && request[question_end] != 0) {
+		const std::size_t label_length = request[question_end];
+		if (label_length > 63 || question_end + label_length + 1 >= request.size()) {
+			return;
+		}
+		question_end += label_length + 1;
+	}
+	if (question_end + 5 > request.size()) {
+		return;
+	}
+	question_end += 5;
+
+	std::istringstream address_stream(address);
+	unsigned int first = 0;
+	unsigned int second = 0;
+	unsigned int third = 0;
+	unsigned int fourth = 0;
+	char separator = 0;
+	if (!(address_stream >> first >> separator >> second >> separator >> third >>
+		separator >> fourth) || first > 255 || second > 255 || third > 255 ||
+		fourth > 255) {
+		return;
+	}
+
+	std::vector<std::uint8_t> response(request.begin(), request.begin() + question_end);
+	response[2] = 0x81;
+	response[3] = 0x80;
+	response[4] = 0x00;
+	response[5] = 0x01;
+	response[6] = 0x00;
+	response[7] = 0x01;
+	response[8] = response[9] = response[10] = response[11] = 0x00;
+	response.insert(response.end(), {0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01,
+									0x00, 0x00, 0x00, 0x3c, 0x00, 0x04,
+									static_cast<std::uint8_t>(first),
+									static_cast<std::uint8_t>(second),
+									static_cast<std::uint8_t>(third),
+									static_cast<std::uint8_t>(fourth)});
+	sendto(dns_socket, response.data(), response.size(), 0,
+		   reinterpret_cast<sockaddr *>(&client_address), client_address_length);
 }
 
 int open_game_socket(std::uint16_t port) {
@@ -123,7 +178,7 @@ int open_game_socket(std::uint16_t port) {
 	// set SO_REUSEADDR for address reuse
 	int reuse_address = 1;
 	setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_address,
-			   sizeof(reuse_address));
+				sizeof(reuse_address));
 
 	// configure to listen on all interfaces
 	sockaddr_in address{};
@@ -133,7 +188,7 @@ int open_game_socket(std::uint16_t port) {
 
 	// bind and listen for incoming tcp connections
 	if (bind(socket_fd, reinterpret_cast<sockaddr *>(&address),
-			 sizeof(address)) < 0 ||
+			sizeof(address)) < 0 ||
 		listen(socket_fd, 8) < 0) {
 		close(socket_fd);
 		return -1;
@@ -166,8 +221,8 @@ void handle_qr_packet(int qr_socket, const std::string &secret_key) {
 		const std::vector<std::uint8_t> response =
 			qr_registered_response(session_id);
 		sendto(qr_socket, response.data(), response.size(), 0,
-			   reinterpret_cast<sockaddr *>(&client_address),
-			   client_address_length);
+				reinterpret_cast<sockaddr *>(&client_address),
+				client_address_length);
 		qr_challenges.erase(challenge);
 		std::cout << "GameSpy QR session registered: " << session_id << "\n";
 		return;
@@ -184,24 +239,24 @@ void handle_qr_packet(int qr_socket, const std::string &secret_key) {
 			if (new_session) {
 				const std::vector<std::uint8_t> response =
 					qr_challenge_response(session_id,
-										  inet_ntoa(client_address.sin_addr),
-										  ntohs(client_address.sin_port));
+											inet_ntoa(client_address.sin_addr),
+											ntohs(client_address.sin_port));
 				sendto(qr_socket, response.data(), response.size(), 0,
-					   reinterpret_cast<sockaddr *>(&client_address),
-					   client_address_length);
+						reinterpret_cast<sockaddr *>(&client_address),
+						client_address_length);
 				const auto challenge_end =
 					std::find(response.begin() + 7, response.end(), 0x00);
 				qr_challenges.emplace(
 					session_id,
 					std::string(response.begin() + 7, challenge_end));
 				std::cout << "GameSpy QR challenge sent for session "
-						  << session_id << "\n";
+							<< session_id << "\n";
 			}
 		}
 		std::cout << "GameSpy QR heartbeat for session " << session_id
-				  << " (state "
-				  << (state_changed.empty() ? "unchanged" : state_changed)
-				  << ")\n";
+					<< " (state "
+					<< (state_changed.empty() ? "unchanged" : state_changed)
+					<< ")\n";
 		return;
 	}
 
@@ -213,10 +268,10 @@ void handle_qr_packet(int qr_socket, const std::string &secret_key) {
 	// generate appropriate response and send back to requesting client
 	const std::vector<std::uint8_t> response = availability_response();
 	sendto(qr_socket, response.data(), response.size(), 0,
-		   reinterpret_cast<sockaddr *>(&client_address),
-		   client_address_length);
+			reinterpret_cast<sockaddr *>(&client_address),
+			client_address_length);
 	std::cout << "GameSpy QR availability request from "
-			  << inet_ntoa(client_address.sin_addr) << '\n';
+				<< inet_ntoa(client_address.sin_addr) << '\n';
 }
 
 void handle_natneg_packet(int natneg_socket) {
@@ -242,8 +297,8 @@ void handle_natneg_packet(int natneg_socket) {
 		formatted_packet << std::setw(2) << static_cast<unsigned int>(byte);
 	}
 	std::cout << "GameSpy NATNEG record 0x" << std::setw(2)
-			  << static_cast<unsigned int>(packet[7]) << " ("
-			  << packet.size() << " bytes): " << formatted_packet.str() << '\n';
+				<< static_cast<unsigned int>(packet[7]) << " ("
+				<< packet.size() << " bytes): " << formatted_packet.str() << '\n';
 
 	if (packet[7] != 0x00 || packet.size() < 14) {
 		return;
@@ -279,7 +334,7 @@ void handle_game_connection(int game_socket) {
 			formatted_packet << std::setw(2) << static_cast<unsigned int>(byte);
 		}
 		std::cout << "GameSpy browser request (" << packet.size()
-				  << " bytes): " << formatted_packet.str() << '\n';
+					<< " bytes): " << formatted_packet.str() << '\n';
 	}
 	close(client_socket);
 }
@@ -300,10 +355,10 @@ void handle_relay_connection(int relay_socket) {
 		formatted_packet << std::hex << std::setfill('0');
 		for (const std::uint8_t byte : packet) {
 			formatted_packet << std::setw(2)
-								 << static_cast<unsigned int>(byte);
+								<< static_cast<unsigned int>(byte);
 		}
 		std::cout << "GameSpy relay request (" << packet.size()
-				  << " bytes): " << formatted_packet.str() << '\n';
+					<< " bytes): " << formatted_packet.str() << '\n';
 	} else {
 		std::cout << "GameSpy relay connection opened without payload\n";
 	}
@@ -325,7 +380,7 @@ std::string player_search_response(const std::string &request) {
 			const std::size_t separator = opids.find('|', start);
 			const std::string opid = opids.substr(
 				start, separator == std::string::npos ? std::string::npos
-															 : separator - start);
+									: separator - start);
 			if (!opid.empty()) {
 				response += "\\o\\" + opid + "\\uniquenick\\";
 			}
@@ -410,7 +465,7 @@ void handle_profile_connection(int profile_socket) {
 			break;
 		}
 		request_buffer.append(request_chunk,
-							  static_cast<std::size_t>(packet_size));
+								static_cast<std::size_t>(packet_size));
 
 		// GameSpy profile messages are delimited by "\final\", extract and
 		// process complete messages
@@ -428,7 +483,7 @@ void handle_profile_connection(int profile_socket) {
 			request_buffer.erase(0, message_size);
 
 			std::cout << "GameSpy profile request (" << request.size()
-					  << " bytes): " << request << '\n';
+						<< " bytes): " << request << '\n';
 			// if this is a keepalive message, send keepalive response to
 			// maintain connection
 			if (is_profile_keepalive(request)) {
@@ -439,7 +494,7 @@ void handle_profile_connection(int profile_socket) {
 				const std::size_t token_marker = request.find("\\authtoken\\");
 				const std::size_t token_start =
 					token_marker == std::string::npos ? std::string::npos
-													  : token_marker + 11;
+									: token_marker + 11;
 				const std::size_t token_end =
 					token_start == std::string::npos
 						? std::string::npos
@@ -475,9 +530,9 @@ void handle_profile_connection(int profile_socket) {
 				statstring = profile_field_value(request, "statstring");
 				locstring = profile_field_value(request, "locstring");
 				std::cout << "GameSpy profile status updated (status "
-						  << (status.empty() ? "unchanged" : status)
-						  << ", statstring " << statstring << ", locstring "
-						  << locstring << ")\n";
+							<< (status.empty() ? "unchanged" : status)
+							<< ", statstring " << statstring << ", locstring "
+							<< locstring << ")\n";
 			}
 		}
 	}
@@ -563,33 +618,43 @@ int run_server(const Config &config) {
 	const int health_socket = open_health_socket(config.health_port);
 	if (health_socket < 0) {
 		std::cerr << "could not bind health port " << config.health_port
-				  << '\n';
+					<< '\n';
 		return 1;
 	}
 
 	const int qr_socket = open_qr_socket(config.qr_port);
 	if (qr_socket < 0) {
 		std::cerr << "could not bind GameSpy QR port " << config.qr_port
-				  << '\n';
+				<< '\n';
 		close(health_socket);
+		return 1;
+	}
+
+	const int dns_socket = open_qr_socket(config.dns_port);
+	if (dns_socket < 0) {
+		std::cerr << "could not bind DNS port " << config.dns_port << '\n';
+		close(health_socket);
+		close(qr_socket);
 		return 1;
 	}
 
 	const int natneg_socket = open_qr_socket(config.natneg_port);
 	if (natneg_socket < 0) {
 		std::cerr << "could not bind GameSpy NATNEG port "
-				  << config.natneg_port << '\n';
+					<< config.natneg_port << '\n';
 		close(health_socket);
 		close(qr_socket);
+		close(dns_socket);
 		return 1;
 	}
 
 	const int game_socket = open_game_socket(config.game_port);
 	if (game_socket < 0) {
 		std::cerr << "could not bind GameSpy browser port " << config.game_port
-				  << '\n';
+					<< '\n';
 		close(health_socket);
 		close(qr_socket);
+		close(dns_socket);
 		close(natneg_socket);
 		return 1;
 	}
@@ -599,6 +664,7 @@ int run_server(const Config &config) {
 		std::cerr << "could not bind NAS port " << config.nas_port << '\n';
 		close(health_socket);
 		close(qr_socket);
+		close(dns_socket);
 		close(natneg_socket);
 		close(game_socket);
 		return 1;
@@ -607,9 +673,10 @@ int run_server(const Config &config) {
 	const int profile_socket = open_game_socket(config.profile_port);
 	if (profile_socket < 0) {
 		std::cerr << "could not bind GameSpy profile port "
-				  << config.profile_port << '\n';
+					<< config.profile_port << '\n';
 		close(health_socket);
 		close(qr_socket);
+		close(dns_socket);
 		close(natneg_socket);
 		close(game_socket);
 		close(nas_socket);
@@ -620,9 +687,10 @@ int run_server(const Config &config) {
 		open_game_socket(config.player_search_port);
 	if (player_search_socket < 0) {
 		std::cerr << "could not bind GameSpy player search port "
-				  << config.player_search_port << '\n';
+					<< config.player_search_port << '\n';
 		close(health_socket);
 		close(qr_socket);
+		close(dns_socket);
 		close(natneg_socket);
 		close(game_socket);
 		close(nas_socket);
@@ -633,9 +701,10 @@ int run_server(const Config &config) {
 	const int relay_socket = open_game_socket(config.relay_port);
 	if (relay_socket < 0) {
 		std::cerr << "could not bind GameSpy relay port " << config.relay_port
-				  << '\n';
+					<< '\n';
 		close(health_socket);
 		close(qr_socket);
+		close(dns_socket);
 		close(natneg_socket);
 		close(game_socket);
 		close(nas_socket);
@@ -645,17 +714,17 @@ int run_server(const Config &config) {
 	}
 
 	std::cout << "server '" << config.server_name << "' started\n"
-			  << "advertised address: " << config.advertised_address << '\n'
-			  << "health port: " << config.health_port << '\n'
-			  << "DNS port (reserved): " << config.dns_port << '\n'
-			  << "NAS HTTP port: " << config.nas_port << '\n'
-			  << "GameSpy QR port: " << config.qr_port << '\n'
-			  << "GameSpy NATNEG port: " << config.natneg_port << '\n'
-			  << "GameSpy profile port: " << config.profile_port << '\n'
-			  << "GameSpy player search port: " << config.player_search_port
-			  << '\n'
-			  << "GameSpy relay port: " << config.relay_port << '\n'
-			  << "GameSpy browser port: " << config.game_port << '\n';
+			<< "advertised address: " << config.advertised_address << '\n'
+				<< "health port: " << config.health_port << '\n'
+				<< "DNS port (reserved): " << config.dns_port << '\n'
+				<< "NAS HTTP port: " << config.nas_port << '\n'
+				<< "GameSpy QR port: " << config.qr_port << '\n'
+				<< "GameSpy NATNEG port: " << config.natneg_port << '\n'
+				<< "GameSpy profile port: " << config.profile_port << '\n'
+				<< "GameSpy player search port: " << config.player_search_port
+				<< '\n'
+				<< "GameSpy relay port: " << config.relay_port << '\n'
+				<< "GameSpy browser port: " << config.game_port << '\n';
 
 	std::vector<std::thread> connection_workers;
 	// Process incoming connections until shutdown signal.
@@ -668,6 +737,7 @@ int run_server(const Config &config) {
 		FD_ZERO(&readable);
 		FD_SET(health_socket, &readable);
 		FD_SET(qr_socket, &readable);
+		FD_SET(dns_socket, &readable);
 		FD_SET(natneg_socket, &readable);
 		FD_SET(game_socket, &readable);
 		FD_SET(nas_socket, &readable);
@@ -675,8 +745,8 @@ int run_server(const Config &config) {
 		FD_SET(player_search_socket, &readable);
 		FD_SET(relay_socket, &readable);
 		const int highest_socket =
-			std::max({health_socket, qr_socket, natneg_socket, game_socket, nas_socket,
-					  profile_socket, player_search_socket, relay_socket});
+			std::max({health_socket, qr_socket, dns_socket, natneg_socket, game_socket, nas_socket,
+						profile_socket, player_search_socket, relay_socket});
 
 		// select waits for any of these sockets to become readable, or timeout
 		// after 1 second
@@ -690,6 +760,10 @@ int run_server(const Config &config) {
 		// handler
 		if (FD_ISSET(qr_socket, &readable)) {
 			handle_qr_packet(qr_socket, config.gamespy_secret_key);
+		}
+
+		if (FD_ISSET(dns_socket, &readable)) {
+			handle_dns_packet(dns_socket, config.advertised_address);
 		}
 
 		if (FD_ISSET(natneg_socket, &readable)) {
@@ -747,6 +821,7 @@ int run_server(const Config &config) {
 	// clean up: close all listening sockets
 	close(health_socket);
 	close(qr_socket);
+	close(dns_socket);
 	close(natneg_socket);
 	close(game_socket);
 	close(nas_socket);
