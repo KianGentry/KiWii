@@ -38,12 +38,13 @@ int main() {
 		   std::string::npos);
 	assert(sake_response.find("<GetMyRecordsResult>Success</GetMyRecordsResult>") !=
 		   std::string::npos);
-	assert(sake_response.find("<values/>") != std::string::npos);
+	assert(sake_response.find("<values></values>") != std::string::npos);
 
 	const std::string create_record_request =
 		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
 		"SOAPAction: \"http://gamespy.net/sake/CreateRecord\"\r\n\r\n"
-		"<CreateRecord/>";
+		"<CreateRecord><loginTicket>ticket-a</loginTicket><gameid>1687</gameid>"
+		"<tableid>FriendInfo</tableid><info>friend-code-a</info></CreateRecord>";
 	const std::string create_record_response =
 		mkwii::nas_response_for_request(create_record_request);
 	assert(create_record_response.find(
@@ -51,6 +52,26 @@ int main() {
 		   std::string::npos);
 	assert(create_record_response.find("<recordid>1</recordid>") !=
 		   std::string::npos);
+
+	const std::string records_request =
+		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
+		"SOAPAction: \"http://gamespy.net/sake/GetMyRecords\"\r\n\r\n"
+		"<GetMyRecords><loginTicket>ticket-a</loginTicket></GetMyRecords>";
+	const std::string records_response =
+		mkwii::nas_response_for_request(records_request);
+	assert(records_response.find("<recordid>1</recordid>") != std::string::npos);
+	assert(records_response.find("<gameid>1687</gameid>") != std::string::npos);
+	assert(records_response.find("<tableid>FriendInfo</tableid>") != std::string::npos);
+	assert(records_response.find("<info>friend-code-a</info>") != std::string::npos);
+
+	const std::string other_records_request =
+		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
+		"SOAPAction: \"http://gamespy.net/sake/GetMyRecords\"\r\n\r\n"
+		"<GetMyRecords><loginTicket>ticket-b</loginTicket></GetMyRecords>";
+	const std::string other_records_response =
+		mkwii::nas_response_for_request(other_records_request);
+	assert(other_records_response.find("<recordid>1</recordid>") == std::string::npos);
+	assert(other_records_response.find("<values></values>") != std::string::npos);
 
 	const std::string second_login_response =
 		mkwii::nas_response_for_request(login_request);

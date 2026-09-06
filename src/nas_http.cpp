@@ -1,10 +1,13 @@
 #include "mkwii/nas_http.h"
 
+#include <cstdint>
 #include <ctime>
 #include <mutex>
 #include <random>
+#include <sstream>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace mkwii {
 namespace {
@@ -85,6 +88,18 @@ struct LoginSession {
 std::unordered_map<std::string, LoginSession> login_sessions;
 std::mutex login_sessions_mutex;
 
+struct FriendInfoRecord {
+	std::uint64_t record_id;
+	std::string owner;
+	std::string game_id;
+	std::string table_id;
+	std::string info;
+};
+
+std::vector<FriendInfoRecord> friend_info_records;
+std::mutex friend_info_mutex;
+std::uint64_t next_friend_info_record_id = 1;
+
 // extract HTTP body from request (everything after blank line separating
 // headers)
 std::string request_body(const std::string &request) {
@@ -95,40 +110,93 @@ std::string request_body(const std::string &request) {
 	return request.substr(body_start + 4);
 }
 
-std::string sake_get_my_records_response() {
-	const std::string body =
-		"<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-		"<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
-		"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-		"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
-		"<soap:Body>"
-		"<GetMyRecordsResponse xmlns=\"http://gamespy.net/sake\">"
-		"<GetMyRecordsResult>Success</GetMyRecordsResult>"
-		"<values/>"
-		"</GetMyRecordsResponse>"
-		"</soap:Body></soap:Envelope>";
-	return "HTTP/1.1 200 OK\r\n"
-		   "Content-Type: text/xml; charset=utf-8\r\n"
-		   "Content-Length: " + std::to_string(body.size()) + "\r\n"
-		   "Connection: close\r\n\r\n" + body;
+std::string xml_value(const std::string &xml, std::string_view name) {
+	const std::string open = "<" + std::string(name) + ">";
+	const std::string close = "</" + std::string(name) + ">";
+	const std::size_t value_start = xml.find(open);
+	if (value_start == std::string::npos) {
+		return {};
+	}
+	const std::size_t content_start = value_start + open.size();
+	const std::size_t value_end = xml.find(close, content_start);
+	if (value_end == std::string::npos) {
+		return {};
+	}
+	return xml.substr(content_start, value_end - content_start);
 }
 
-std::string sake_create_record_response() {
-	const std::string body =
+std::string sake_action(const std::string &request) {
+	const std::string marker = "SOAPAction:";
+	const std::size_t marker_start = request.find(marker);
+	if (marker_start == std::string::npos) {
+		return {};
+	}
+	const std::size_t value_start = request.find_first_not_of(" \t\"", marker_start + marker.size());
+	if (value_start == std::string::npos) {
+		return {};
+	}
+	const std::size_t value_end = request.find_first_of("\"\r\n", value_start);
+	const std::string value = request.substr(
+		value_start, value_end == std::string::npos ? std::string::npos : value_end - value_start);
+	const std::size_t separator = value.rfind('/');
+	return separator == std::string::npos ? value : value.substr(separator + 1);
+}
+
+std::string sake_response(std::string body) {
+	const std::string envelope =
 		"<?xml version=\"1.0\" encoding=\"utf-8\"?>"
 		"<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
 		"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
-		"<soap:Body>"
-		"<CreateRecordResponse xmlns=\"http://gamespy.net/sake\">"
-		"<CreateRecordResult>Success</CreateRecordResult>"
-		"<recordid>1</recordid>"
-		"</CreateRecordResponse>"
-		"</soap:Body></soap:Envelope>";
+		"<soap:Body>" + body + "</soap:Body></soap:Envelope>";
 	return "HTTP/1.1 200 OK\r\n"
 		   "Content-Type: text/xml; charset=utf-8\r\n"
-		   "Content-Length: " + std::to_string(body.size()) + "\r\n"
-		   "Connection: close\r\n\r\n" + body;
+		   "Content-Length: " + std::to_string(envelope.size()) + "\r\n"
+		   "Connection: close\r\n\r\n" + envelope;
+}
+
+std::string sake_get_my_records_response(const std::string &owner) {
+	std::ostringstream values;
+	values << "<values>";
+	{
+		std::lock_guard<std::mutex> lock(friend_info_mutex);
+		for (const FriendInfoRecord &record : friend_info_records) {
+			if (record.owner != owner) {
+				continue;
+			}
+			values << "<value><recordid>" << record.record_id
+			       << "</recordid><gameid>" << record.game_id
+			       << "</gameid><tableid>" << record.table_id
+			       << "</tableid><info>" << record.info << "</info></value>";
+		}
+	}
+	values << "</values>";
+	const std::string body =
+		"<GetMyRecordsResponse xmlns=\"http://gamespy.net/sake\">"
+		"<GetMyRecordsResult>Success</GetMyRecordsResult>"
+		+ values.str() + "</GetMyRecordsResponse>";
+	return sake_response(body);
+}
+
+std::string sake_create_record_response(const std::string &request) {
+	const std::string body_text = request_body(request);
+	FriendInfoRecord record{
+		0,
+		xml_value(body_text, "loginTicket"),
+		xml_value(body_text, "gameid"),
+		xml_value(body_text, "tableid"),
+		xml_value(body_text, "info")};
+	{
+		std::lock_guard<std::mutex> lock(friend_info_mutex);
+		record.record_id = next_friend_info_record_id++;
+		friend_info_records.push_back(record);
+	}
+	const std::string body =
+		"<CreateRecordResponse xmlns=\"http://gamespy.net/sake\">"
+		"<CreateRecordResult>Success</CreateRecordResult>"
+		"<recordid>" + std::to_string(record.record_id) + "</recordid>"
+		"</CreateRecordResponse>";
+	return sake_response(body);
 }
 
 } // namespace
@@ -157,15 +225,16 @@ std::string nas_connectivity_response() {
 
 // process NAS login request and generate appropriate response
 std::string nas_response_for_request(const std::string &request) {
-	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") !=
-			std::string::npos &&
-		request.find("GetMyRecords") != std::string::npos) {
-		return sake_get_my_records_response();
-	}
-	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") !=
-			std::string::npos &&
-		request.find("CreateRecord") != std::string::npos) {
-		return sake_create_record_response();
+	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") != std::string::npos) {
+		const std::string action = sake_action(request);
+		const std::string body = request_body(request);
+		const std::string owner = xml_value(body, "loginTicket");
+		if (action == "GetMyRecords") {
+			return sake_get_my_records_response(owner);
+		}
+		if (action == "CreateRecord") {
+			return sake_create_record_response(request);
+		}
 	}
 
 	if (request.find("POST /ac ") == std::string::npos ||
