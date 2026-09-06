@@ -43,9 +43,9 @@
 ## NATNEG And Session Transport
 
 - [ ] Capture the first real UDP `27901` NATNEG sequence
-- [ ] Implement NATNEG session tracking by session ID and client index
-- [ ] Implement `NN_INIT` and `NN_INITACK` using captured packets
-- [ ] Implement the first observed `NN_CONNECT` exchange
+- [x] Implement NATNEG session tracking by session ID and client index
+- [x] Implement `NN_INIT` and `NN_INITACK` using captured packets
+- [x] Implement the first observed `NN_CONNECT` exchange
 - [ ] Implement NAT type and endpoint fields from real captures
 - [ ] Add NATNEG timeout and session cleanup
 - [ ] Determine whether this Mario Kart Wii revision uses NATNEG or the relay path

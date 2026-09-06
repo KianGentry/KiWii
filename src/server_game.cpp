@@ -1,10 +1,12 @@
 #include "mkwii/server_internal.h"
 
-#include "mkwii/gamespy_qr.h"
+#include "mkwii/gamespy_natneg.h"
 
 #include <arpa/inet.h>
 #include <iomanip>
 #include <iostream>
+#include <map>
+#include <mutex>
 #include <netinet/in.h>
 #include <sstream>
 #include <sys/socket.h>
@@ -13,20 +15,32 @@
 
 namespace mkwii {
 
+namespace {
+
+struct NatNegSessionClient {
+    NatNegClient client;
+    std::vector<std::uint8_t> init_packet;
+    sockaddr_in endpoint;
+};
+
+std::map<std::uint32_t, std::map<std::uint8_t, NatNegSessionClient>> natneg_sessions;
+std::mutex natneg_sessions_mutex;
+
+} // namespace
+
 void handle_natneg_packet(int natneg_socket) {
-    constexpr std::uint8_t magic[] = {0xfd, 0xfc, 0x1e, 0x66, 0x6a, 0xb2};
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
     socklen_t client_address_length = sizeof(client_address);
     const ssize_t packet_size = recvfrom(
         natneg_socket, packet.data(), packet.size(), 0,
         reinterpret_cast<sockaddr *>(&client_address), &client_address_length);
-    if (packet_size < 8) {
+    if (packet_size <= 0) {
         return;
     }
     packet.resize(static_cast<std::size_t>(packet_size));
-    if (!std::equal(std::begin(magic), std::end(magic), packet.begin()) ||
-        packet[6] != 0x03) {
+    NatNegClient client{};
+    if (!parse_natneg_init(packet, client)) {
         return;
     }
     std::ostringstream formatted_packet;
@@ -37,14 +51,27 @@ void handle_natneg_packet(int natneg_socket) {
     std::cout << "GameSpy NATNEG record 0x" << std::setw(2)
               << static_cast<unsigned int>(packet[7]) << " ("
               << packet.size() << " bytes): " << formatted_packet.str() << '\n';
-    if (packet[7] != 0x00 || packet.size() < 14) {
-        return;
-    }
-    std::vector<std::uint8_t> response(packet.begin(), packet.begin() + 14);
-    response.insert(response.end(), {0xff, 0xff, 0x6d, 0x16, 0xb5, 0x7d, 0xea});
-    response[7] = 0x01;
+    client.address = client_address.sin_addr.s_addr;
+    client.port = ntohs(client_address.sin_port);
+    const std::vector<std::uint8_t> response = natneg_init_ack(packet);
     sendto(natneg_socket, response.data(), response.size(), 0,
            reinterpret_cast<sockaddr *>(&client_address), client_address_length);
+
+    std::lock_guard<std::mutex> lock(natneg_sessions_mutex);
+    auto &session = natneg_sessions[client.session_id];
+    session[client.client_index] = {client, packet, client_address};
+    if (session.size() == 2) {
+        auto first = session.begin();
+        auto second = std::next(first);
+        const std::vector<std::uint8_t> first_connect =
+            natneg_connect(first->second.init_packet, second->second.client);
+        const std::vector<std::uint8_t> second_connect =
+            natneg_connect(second->second.init_packet, first->second.client);
+        sendto(natneg_socket, first_connect.data(), first_connect.size(), 0,
+               reinterpret_cast<sockaddr *>(&first->second.endpoint), sizeof(sockaddr_in));
+        sendto(natneg_socket, second_connect.data(), second_connect.size(), 0,
+               reinterpret_cast<sockaddr *>(&second->second.endpoint), sizeof(sockaddr_in));
+    }
     std::cout << "GameSpy NATNEG initialization acknowledged\n";
 }
 
