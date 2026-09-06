@@ -1,6 +1,7 @@
 #include "mkwii/server_internal.h"
 
 #include "mkwii/gamespy_qr.h"
+#include "mkwii/gamespy_sessions.h"
 
 #include <arpa/inet.h>
 #include <algorithm>
@@ -11,7 +12,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace mkwii {
@@ -69,7 +69,6 @@ void handle_dns_packet(int dns_socket, const std::string &address) {
 }
 
 void handle_qr_packet(int qr_socket, const std::string &secret_key) {
-    static std::unordered_set<std::uint32_t> qr_sessions;
     static std::unordered_map<std::uint32_t, std::string> qr_challenges;
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
@@ -96,9 +95,23 @@ void handle_qr_packet(int qr_socket, const std::string &secret_key) {
     if (is_mariokartwii_heartbeat(packet)) {
         const std::string state_changed = qr_field_value(packet, "statechanged");
         if (state_changed == "2") {
-            qr_sessions.erase(session_id);
+            remove_online_session(session_id);
             qr_challenges.erase(session_id);
-        } else if (qr_sessions.insert(session_id).second) {
+        } else {
+            const std::string profile_id = qr_field_value(packet, "profileid");
+            const std::string user_id = qr_field_value(packet, "userid");
+            const std::string unique_nick = qr_field_value(packet, "uniquenick");
+            upsert_online_session({
+                session_id,
+                !profile_id.empty() ? profile_id
+                                     : (!user_id.empty() ? user_id
+                                                         : std::to_string(session_id)),
+                unique_nick,
+                qr_field_value(packet, "gamename"),
+                inet_ntoa(client_address.sin_addr),
+                ntohs(client_address.sin_port)});
+        }
+        if (qr_challenges.find(session_id) == qr_challenges.end()) {
             const std::vector<std::uint8_t> response = qr_challenge_response(
                 session_id, inet_ntoa(client_address.sin_addr),
                 ntohs(client_address.sin_port));
@@ -155,6 +168,7 @@ void handle_relay_connection(int relay_socket, SSL_CTX *ssl_context) {
 
 std::string player_search_response(const std::string &request) {
     std::string response = "\\otherslist\\";
+    std::vector<std::string> requested_profiles;
     const std::size_t opids_marker = request.find("\\opids\\");
     if (opids_marker != std::string::npos) {
         const std::size_t value_start = opids_marker + 7;
@@ -169,13 +183,17 @@ std::string player_search_response(const std::string &request) {
                 start, separator == std::string::npos ? std::string::npos
                                                        : separator - start);
             if (!opid.empty()) {
-                response += "\\o\\" + opid + "\\uniquenick\\";
+                requested_profiles.push_back(opid);
             }
             if (separator == std::string::npos) {
                 break;
             }
             start = separator + 1;
         }
+    }
+    for (const OnlineSession &session : online_sessions_for_profiles(requested_profiles)) {
+        response += "\\o\\" + session.profile_id + "\\uniquenick\\" +
+                    session.unique_nick;
     }
     return response + "\\oldone\\\\final\\";
 }

@@ -28,11 +28,11 @@
 ## Matchmaking Services
 
 - [ ] Capture and decode the Player Search request/response sequence in detail
-- [ ] Define the online-player/session model
-- [ ] Track QR-registered clients by profile, game, public endpoint, and session
-- [ ] Remove stale registered clients after timeout or `statechanged=2`
-- [ ] Return only real active clients from Player Search
-- [ ] Keep the empty-player response correct when nobody is online
+- [x] Define the online-player/session model
+- [x] Track QR-registered clients by profile, game, public endpoint, and session
+- [x] Remove registered clients on `statechanged=2`
+- [x] Return only real active clients from Player Search
+- [x] Keep the empty-player response correct when nobody is online
 - [ ] Add a configurable synthetic opponent for one-client protocol testing
 - [ ] Keep synthetic matchmaking disabled by default
 - [ ] Implement the GameSpy browser request parser on TCP `28910`
