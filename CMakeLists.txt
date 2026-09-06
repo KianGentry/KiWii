@@ -12,12 +12,17 @@ add_executable(mkwii-server
     src/gamespy_qr.cpp
     src/gamespy_profile.cpp
     src/nas_http.cpp
+    src/server_sockets.cpp
+    src/server_game.cpp
+    src/server_discovery.cpp
+    src/server_profile.cpp
+    src/server_nas.cpp
     src/server.cpp
 )
 
 target_include_directories(mkwii-server PRIVATE include)
 find_package(OpenSSL REQUIRED)
-target_link_libraries(mkwii-server PRIVATE OpenSSL::Crypto)
+target_link_libraries(mkwii-server PRIVATE OpenSSL::Crypto OpenSSL::SSL)
 
 target_compile_options(mkwii-server PRIVATE
     -Wall
