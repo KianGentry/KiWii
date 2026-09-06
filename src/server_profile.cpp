@@ -4,6 +4,8 @@
 #include "mkwii/nas_http.h"
 
 #include <iostream>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -14,7 +16,9 @@ void handle_profile_connection(int profile_socket) {
     if (client_socket < 0) {
         return;
     }
-    set_receive_timeout(client_socket, 5);
+    int keepalive = 1;
+    setsockopt(client_socket, SOL_SOCKET, SO_KEEPALIVE, &keepalive,
+               sizeof(keepalive));
     const std::string login_challenge = profile_login_challenge();
     LoginCredentials credentials;
     std::string firstname;
@@ -32,7 +36,7 @@ void handle_profile_connection(int profile_socket) {
     char request_chunk[4096];
     while (true) {
         const ssize_t packet_size = recv(client_socket, request_chunk,
-                                         sizeof(request_chunk), 0);
+                                        sizeof(request_chunk), 0);
         if (packet_size <= 0) {
             break;
         }
