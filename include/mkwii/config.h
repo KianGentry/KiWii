@@ -16,6 +16,7 @@ struct Config {
     std::uint16_t natneg_port;
     std::uint16_t profile_port;
     std::uint16_t player_search_port;
+    std::uint16_t relay_port;
     std::uint16_t game_port;
     std::string gamespy_secret_key;
 };

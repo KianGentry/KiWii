@@ -284,6 +284,32 @@ void handle_game_connection(int game_socket) {
 	close(client_socket);
 }
 
+void handle_relay_connection(int relay_socket) {
+	const int client_socket = accept(relay_socket, nullptr, nullptr);
+	if (client_socket < 0) {
+		return;
+	}
+	set_receive_timeout(client_socket, 5);
+
+	std::vector<std::uint8_t> packet(4096);
+	const ssize_t packet_size =
+		recv(client_socket, packet.data(), packet.size(), 0);
+	if (packet_size > 0) {
+		packet.resize(static_cast<std::size_t>(packet_size));
+		std::ostringstream formatted_packet;
+		formatted_packet << std::hex << std::setfill('0');
+		for (const std::uint8_t byte : packet) {
+			formatted_packet << std::setw(2)
+								 << static_cast<unsigned int>(byte);
+		}
+		std::cout << "GameSpy relay request (" << packet.size()
+				  << " bytes): " << formatted_packet.str() << '\n';
+	} else {
+		std::cout << "GameSpy relay connection opened without payload\n";
+	}
+	close(client_socket);
+}
+
 std::string player_search_response(const std::string &request) {
 	std::string response = "\\otherslist\\";
 	const std::size_t opids_marker = request.find("\\opids\\");
@@ -604,6 +630,20 @@ int run_server(const Config &config) {
 		return 1;
 	}
 
+	const int relay_socket = open_game_socket(config.relay_port);
+	if (relay_socket < 0) {
+		std::cerr << "could not bind GameSpy relay port " << config.relay_port
+				  << '\n';
+		close(health_socket);
+		close(qr_socket);
+		close(natneg_socket);
+		close(game_socket);
+		close(nas_socket);
+		close(profile_socket);
+		close(player_search_socket);
+		return 1;
+	}
+
 	std::cout << "server '" << config.server_name << "' started\n"
 			  << "advertised address: " << config.advertised_address << '\n'
 			  << "health port: " << config.health_port << '\n'
@@ -614,6 +654,7 @@ int run_server(const Config &config) {
 			  << "GameSpy profile port: " << config.profile_port << '\n'
 			  << "GameSpy player search port: " << config.player_search_port
 			  << '\n'
+			  << "GameSpy relay port: " << config.relay_port << '\n'
 			  << "GameSpy browser port: " << config.game_port << '\n';
 
 	std::vector<std::thread> connection_workers;
@@ -632,9 +673,10 @@ int run_server(const Config &config) {
 		FD_SET(nas_socket, &readable);
 		FD_SET(profile_socket, &readable);
 		FD_SET(player_search_socket, &readable);
+		FD_SET(relay_socket, &readable);
 		const int highest_socket =
 			std::max({health_socket, qr_socket, natneg_socket, game_socket, nas_socket,
-					  profile_socket, player_search_socket});
+					  profile_socket, player_search_socket, relay_socket});
 
 		// select waits for any of these sockets to become readable, or timeout
 		// after 1 second
@@ -673,6 +715,11 @@ int run_server(const Config &config) {
 											player_search_socket);
 		}
 
+		if (FD_ISSET(relay_socket, &readable)) {
+			connection_workers.emplace_back(handle_relay_connection,
+											relay_socket);
+		}
+
 		// handle health check requests
 		if (!FD_ISSET(health_socket, &readable)) {
 			continue;
@@ -705,6 +752,7 @@ int run_server(const Config &config) {
 	close(nas_socket);
 	close(profile_socket);
 	close(player_search_socket);
+	close(relay_socket);
 	std::cout << "server stopped\n";
 	return 0;
 }

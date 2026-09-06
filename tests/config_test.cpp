@@ -13,6 +13,7 @@ int main() {
     setenv("MKWII_NATNEG_PORT", "27901", 1);
     setenv("MKWII_PROFILE_PORT", "29900", 1);
     setenv("MKWII_PLAYER_SEARCH_PORT", "29901", 1);
+    setenv("MKWII_RELAY_PORT", "22000", 1);
     setenv("MKWII_GAME_PORT", "28910", 1);
 
     const mkwii::Config config = mkwii::config_from_environment();
@@ -25,6 +26,7 @@ int main() {
     assert(config.natneg_port == 27901);
     assert(config.profile_port == 29900);
     assert(config.player_search_port == 29901);
+    assert(config.relay_port == 22000);
     assert(config.game_port == 28910);
     assert(config.gamespy_secret_key == "9r3Rmy");
     return 0;

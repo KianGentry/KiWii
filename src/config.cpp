@@ -49,6 +49,7 @@ Config config_from_environment() {
         port_environment("MKWII_NATNEG_PORT", 27901),
         port_environment("MKWII_PROFILE_PORT", 29900),
         port_environment("MKWII_PLAYER_SEARCH_PORT", 29901),
+        port_environment("MKWII_RELAY_PORT", 22000),
         port_environment("MKWII_GAME_PORT", 28910),
         optional_environment("MKWII_GAMESPY_SECRET_KEY", "9r3Rmy"),
     };
