@@ -13,6 +13,7 @@ add_executable(mkwii-server
     src/gamespy_sessions.cpp
     src/gamespy_natneg.cpp
     src/gamespy_dns.cpp
+    src/gamespy_browser.cpp
     src/gamespy_profile.cpp
     src/nas_http.cpp
     src/server_sockets.cpp
@@ -74,6 +75,13 @@ if (BUILD_TESTING)
     )
     target_include_directories(gamespy-dns-test PRIVATE include)
     add_test(NAME gamespy-dns-test COMMAND gamespy-dns-test)
+
+    add_executable(gamespy-browser-test
+        tests/gamespy_browser_test.cpp
+        src/gamespy_browser.cpp
+    )
+    target_include_directories(gamespy-browser-test PRIVATE include)
+    add_test(NAME gamespy-browser-test COMMAND gamespy-browser-test)
 
     add_executable(gamespy-profile-test
         tests/gamespy_profile_test.cpp

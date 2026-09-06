@@ -1,5 +1,6 @@
 #include "mkwii/server_internal.h"
 
+#include "mkwii/gamespy_browser.h"
 #include "mkwii/gamespy_natneg.h"
 
 #include <arpa/inet.h>
@@ -111,17 +112,34 @@ void handle_game_connection(int game_socket) {
         return;
     }
     set_receive_timeout(client_socket, 5);
-    std::vector<std::uint8_t> packet(4096);
-    const ssize_t packet_size = recv(client_socket, packet.data(), packet.size(), 0);
-    if (packet_size > 0) {
-        packet.resize(static_cast<std::size_t>(packet_size));
-        std::ostringstream formatted_packet;
-        formatted_packet << std::hex << std::setfill('0');
-        for (const std::uint8_t byte : packet) {
-            formatted_packet << std::setw(2) << static_cast<unsigned int>(byte);
+    std::uint8_t length_bytes[2]{};
+    if (recv(client_socket, length_bytes, sizeof(length_bytes), MSG_WAITALL) !=
+        static_cast<ssize_t>(sizeof(length_bytes))) {
+        close(client_socket);
+        return;
+    }
+    const std::size_t packet_size =
+        (static_cast<std::size_t>(length_bytes[0]) << 8) | length_bytes[1];
+    if (packet_size < 3 || packet_size > 2048) {
+        close(client_socket);
+        return;
+    }
+    std::vector<std::uint8_t> packet(packet_size);
+    packet[0] = length_bytes[0];
+    packet[1] = length_bytes[1];
+    if (recv(client_socket, packet.data() + 2, packet.size() - 2, MSG_WAITALL) !=
+        static_cast<ssize_t>(packet.size() - 2)) {
+        close(client_socket);
+        return;
+    }
+    BrowserRequest request{};
+    if (parse_browser_request(packet, request)) {
+        const std::vector<std::uint8_t> response =
+            browser_empty_server_list(request, "0.0.0.0", 0);
+        if (!response.empty()) {
+            send_all(client_socket, reinterpret_cast<const char *>(response.data()),
+                     response.size());
         }
-        std::cout << "GameSpy browser request (" << packet.size()
-                  << " bytes): " << formatted_packet.str() << '\n';
     }
     close(client_socket);
 }

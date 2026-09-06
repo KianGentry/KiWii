@@ -35,8 +35,8 @@
 - [x] Keep the empty-player response correct when nobody is online
 - [ ] Add a configurable synthetic opponent for one-client protocol testing
 - [ ] Keep synthetic matchmaking disabled by default
-- [ ] Implement the GameSpy browser request parser on TCP `28910`
-- [ ] Implement the minimal empty server-list response
+- [x] Implement the GameSpy browser request parser on TCP `28910`
+- [x] Implement the minimal empty server-list response
 - [ ] Add the current client/server to the browser list when appropriate
 - [ ] Add encrypted browser responses if the PAL client requires them
 
