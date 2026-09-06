@@ -1,5 +1,6 @@
 #include "mkwii/server_internal.h"
 
+#include "mkwii/gamespy_dns.h"
 #include "mkwii/gamespy_qr.h"
 #include "mkwii/gamespy_sessions.h"
 
@@ -8,7 +9,6 @@
 #include <iomanip>
 #include <iostream>
 #include <netinet/in.h>
-#include <sstream>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <unordered_map>
@@ -27,43 +27,10 @@ void handle_dns_packet(int dns_socket, const std::string &address) {
         return;
     }
     request.resize(static_cast<std::size_t>(packet_size));
-    std::size_t question_end = 12;
-    while (question_end < request.size() && request[question_end] != 0) {
-        const std::size_t label_length = request[question_end];
-        if (label_length > 63 || question_end + label_length + 1 >= request.size()) {
-            return;
-        }
-        question_end += label_length + 1;
-    }
-    if (question_end + 5 > request.size()) {
+    const std::vector<std::uint8_t> response = dns_a_response(request, address);
+    if (response.empty()) {
         return;
     }
-    question_end += 5;
-    std::istringstream address_stream(address);
-    unsigned int first = 0;
-    unsigned int second = 0;
-    unsigned int third = 0;
-    unsigned int fourth = 0;
-    char separator = 0;
-    if (!(address_stream >> first >> separator >> second >> separator >> third >>
-          separator >> fourth) || first > 255 || second > 255 || third > 255 ||
-        fourth > 255) {
-        return;
-    }
-    std::vector<std::uint8_t> response(request.begin(), request.begin() + question_end);
-    response[2] = 0x81;
-    response[3] = 0x80;
-    response[4] = 0x00;
-    response[5] = 0x01;
-    response[6] = 0x00;
-    response[7] = 0x01;
-    response[8] = response[9] = response[10] = response[11] = 0x00;
-    response.insert(response.end(), {0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01,
-                                     0x00, 0x00, 0x00, 0x3c, 0x00, 0x04,
-                                     static_cast<std::uint8_t>(first),
-                                     static_cast<std::uint8_t>(second),
-                                     static_cast<std::uint8_t>(third),
-                                     static_cast<std::uint8_t>(fourth)});
     sendto(dns_socket, response.data(), response.size(), 0,
            reinterpret_cast<sockaddr *>(&client_address), client_address_length);
 }

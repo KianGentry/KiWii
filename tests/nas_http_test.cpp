@@ -53,6 +53,16 @@ int main() {
 	assert(create_record_response.find("<recordid>1</recordid>") !=
 		   std::string::npos);
 
+	const std::string second_create_record_request =
+		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
+		"SOAPAction: \"http://gamespy.net/sake/CreateRecord\"\r\n\r\n"
+		"<CreateRecord><loginTicket>ticket-a</loginTicket><gameid>1687</gameid>"
+		"<tableid>FriendInfo</tableid><info>friend-code-b</info></CreateRecord>";
+	const std::string second_create_record_response =
+		mkwii::nas_response_for_request(second_create_record_request);
+	assert(second_create_record_response.find("<recordid>2</recordid>") !=
+		   std::string::npos);
+
 	const std::string records_request =
 		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
 		"SOAPAction: \"http://gamespy.net/sake/GetMyRecords\"\r\n\r\n"
@@ -63,6 +73,14 @@ int main() {
 	assert(records_response.find("<gameid>1687</gameid>") != std::string::npos);
 	assert(records_response.find("<tableid>FriendInfo</tableid>") != std::string::npos);
 	assert(records_response.find("<info>friend-code-a</info>") != std::string::npos);
+	assert(records_response.find("<info>friend-code-b</info>") != std::string::npos);
+
+	const std::string action_in_body_request =
+		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
+		"SOAPAction: \"http://gamespy.net/sake/CreateRecord\"\r\n\r\n"
+		"<CreateRecord><info>GetMyRecords</info></CreateRecord>";
+	assert(mkwii::nas_response_for_request(action_in_body_request).find(
+			   "<CreateRecordResult>Success</CreateRecordResult>") != std::string::npos);
 
 	const std::string other_records_request =
 		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"

@@ -4,9 +4,9 @@
 
 - [ ] Remove the remaining legacy duplicate implementations from `src/server.cpp`
 - [ ] Replace deprecated OpenSSL RSA generation calls with EVP key-generation APIs
-- [ ] Add focused DNS protocol tests
+- [x] Add focused DNS protocol tests
 - [ ] Add focused profile idle-session/keepalive tests
-- [ ] Add focused Sake SOAP response tests for every supported action
+- [x] Add focused Sake SOAP response tests for every supported action
 - [ ] Add a recorded-packet integration test for the complete login-to-menu flow
 - [ ] Verify the current Docker image after the source-file split
 - [ ] Update the startup log to report all configured listeners consistently
