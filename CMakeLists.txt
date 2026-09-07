@@ -20,6 +20,7 @@ add_executable(mkwii-server
     src/server_game.cpp
     src/server_discovery.cpp
     src/server_profile.cpp
+    src/server_gamestats.cpp
     src/server_nas.cpp
     src/server.cpp
 )

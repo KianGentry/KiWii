@@ -58,6 +58,7 @@ Forward these currently implemented listeners from the public Internet:
 | TCP | 28910 | GameSpy browser connection |
 | TCP | 29900 | GameSpy profile |
 | TCP | 29901 | Player Search |
+| TCP | 29920 | GameSpy gamestats |
 | TCP | 22000 | Relay TLS |
 
 The health listener on TCP `8080` is intended for local or private monitoring.

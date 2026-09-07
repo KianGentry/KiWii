@@ -60,6 +60,8 @@ int run_server(const Config &config) {
     if (!open_socket(profile_socket, "GameSpy profile port")) return 1;
     const int player_search_socket = open_tcp_socket(config.player_search_port);
     if (!open_socket(player_search_socket, "GameSpy player search port")) return 1;
+    const int gamestats_socket = open_tcp_socket(config.gamestats_port);
+    if (!open_socket(gamestats_socket, "GameSpy gamestats port")) return 1;
     const int relay_socket = open_tcp_socket(config.relay_port);
     if (!open_socket(relay_socket, "GameSpy relay port")) return 1;
 
@@ -78,6 +80,7 @@ int run_server(const Config &config) {
               << "GameSpy NATNEG port: " << config.natneg_port << '\n'
               << "GameSpy profile port: " << config.profile_port << '\n'
               << "GameSpy player search port: " << config.player_search_port << '\n'
+              << "GameSpy gamestats port: " << config.gamestats_port << '\n'
               << "GameSpy relay port: " << config.relay_port << '\n'
               << "GameSpy browser port: " << config.game_port << '\n';
 
@@ -118,6 +121,9 @@ int run_server(const Config &config) {
         }
         if (FD_ISSET(player_search_socket, &readable)) {
             workers.emplace_back(handle_player_search_connection, player_search_socket);
+        }
+        if (FD_ISSET(gamestats_socket, &readable)) {
+            workers.emplace_back(handle_gamestats_connection, gamestats_socket);
         }
         if (FD_ISSET(relay_socket, &readable)) {
             workers.emplace_back(handle_relay_connection, relay_socket, relay_ssl_context);

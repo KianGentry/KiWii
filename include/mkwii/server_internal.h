@@ -18,6 +18,7 @@ void handle_dns_tcp_connection(int dns_socket, const std::string &address);
 void handle_qr_packet(int qr_socket, const std::string &secret_key);
 void handle_relay_connection(int relay_socket, SSL_CTX *ssl_context);
 void handle_player_search_connection(int player_search_socket);
+void handle_gamestats_connection(int gamestats_socket);
 void handle_profile_connection(int profile_socket);
 void handle_nas_connection(int nas_socket);
 void handle_natneg_packet(int natneg_socket);
