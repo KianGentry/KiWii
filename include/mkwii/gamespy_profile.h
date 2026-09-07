@@ -16,6 +16,9 @@ bool is_profile_getprofile(const std::string& request);
 bool is_profile_updatepro(const std::string& request);
 
 bool is_profile_status(const std::string& request);
+bool is_profile_addbuddy(const std::string& request);
+bool is_profile_authadd(const std::string& request);
+bool is_profile_delbuddy(const std::string& request);
 
 std::string profile_field_value(const std::string& request, const std::string& key);
 

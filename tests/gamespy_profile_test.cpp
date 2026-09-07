@@ -44,6 +44,15 @@ int main() {
 	const std::string status = "\\status\\1\\sesskey\\12345678\\statstring\\/"
 							   "SCM/1/SCN/0/VER/90\\locstring\\\\final\\";
 	assert(mkwii::is_profile_status(status));
+	const std::string addbuddy =
+		"\\addbuddy\\sesskey\\12345678\\newprofileid\\2\\reason\\\\final\\";
+	assert(mkwii::is_profile_addbuddy(addbuddy));
+	const std::string authadd =
+		"\\authadd\\sesskey\\12345678\\fromprofileid\\1\\sig\\abc\\final\\";
+	assert(mkwii::is_profile_authadd(authadd));
+	const std::string delbuddy =
+		"\\delbuddy\\sesskey\\12345678\\delprofileid\\2\\final\\";
+	assert(mkwii::is_profile_delbuddy(delbuddy));
 	assert(mkwii::profile_field_value(status, "status") == "1");
 	assert(mkwii::profile_field_value(status, "statstring") ==
 		   "/SCM/1/SCN/0/VER/90");

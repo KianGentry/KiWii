@@ -4,12 +4,36 @@
 #include "mkwii/nas_http.h"
 
 #include <iostream>
+#include <ctime>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 namespace mkwii {
+
+namespace {
+
+std::mutex buddy_mutex;
+std::mutex profile_write_mutex;
+std::unordered_map<std::string, int> active_profiles;
+std::unordered_map<std::string, std::unordered_set<std::string>> pending_requests;
+
+std::string buddy_message(const std::string &command, const std::string &source,
+                          const std::string &message) {
+    return "\\bm\\" + command + "\\f\\" + source + "\\date\\" +
+           std::to_string(std::time(nullptr)) + "\\msg\\" + message + "\\final\\";
+}
+
+void send_profile_message(int socket_fd, const std::string &message) {
+    std::lock_guard<std::mutex> lock(profile_write_mutex);
+    send_all(socket_fd, message.data(), message.size());
+}
+
+}
 
 void handle_profile_connection(int profile_socket) {
     const int client_socket = accept(profile_socket, nullptr, nullptr);
@@ -79,9 +103,41 @@ void handle_profile_connection(int profile_socket) {
                 status = profile_field_value(request, "status");
                 statstring = profile_field_value(request, "statstring");
                 locstring = profile_field_value(request, "locstring");
+                std::lock_guard<std::mutex> lock(buddy_mutex);
+                active_profiles[credentials.profile_id] = client_socket;
+            } else if (is_profile_addbuddy(request)) {
+                const std::string target = profile_field_value(request, "newprofileid");
+                if (!target.empty() && target != credentials.profile_id) {
+                    std::lock_guard<std::mutex> lock(buddy_mutex);
+                    pending_requests[target].insert(credentials.profile_id);
+                    const auto found = active_profiles.find(target);
+                    if (found != active_profiles.end()) {
+                        send_profile_message(
+                            found->second,
+                            buddy_message("2", credentials.profile_id,
+                                          "\\r\\n\\r\\n|signed|KiWii"));
+                    }
+                }
+            } else if (is_profile_authadd(request)) {
+                const std::string source = profile_field_value(request, "fromprofileid");
+                if (!source.empty()) {
+                    std::lock_guard<std::mutex> lock(buddy_mutex);
+                    pending_requests[credentials.profile_id].erase(source);
+                    const auto found = active_profiles.find(source);
+                    if (found != active_profiles.end()) {
+                        send_profile_message(found->second,
+                                             buddy_message("4", credentials.profile_id, ""));
+                    }
+                }
+            } else if (is_profile_delbuddy(request)) {
+                const std::string target = profile_field_value(request, "delprofileid");
+                std::lock_guard<std::mutex> lock(buddy_mutex);
+                pending_requests[credentials.profile_id].erase(target);
             }
         }
     }
+    std::lock_guard<std::mutex> lock(buddy_mutex);
+    active_profiles.erase(credentials.profile_id);
     close(client_socket);
 }
 
