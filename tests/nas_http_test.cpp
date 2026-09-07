@@ -28,6 +28,16 @@ int main() {
 	assert(login_response.ends_with("\r\n"));
 	assert(login_response.size() > response.size());
 
+	const std::string account_create_request =
+		"POST /ac HTTP/1.1\r\n"
+		"Host: naswii.nintendowifi.net\r\n\r\n"
+		"action=YWNjdGNyZWF0ZQ%2A%2A&userid=test";
+	const std::string account_create_response =
+		mkwii::nas_response_for_request(account_create_request);
+	assert(account_create_response.find("retry=MA**&returncd=MDAy&userid=") !=
+		   std::string::npos);
+	assert(account_create_response.find("&datetime=") != std::string::npos);
+
 	const std::string sake_request =
 		"POST /SakeStorageServer/StorageServer.asmx HTTP/1.1\r\n"
 		"SOAPAction: \"http://gamespy.net/sake/GetMyRecords\"\r\n\r\n"

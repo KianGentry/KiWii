@@ -110,6 +110,19 @@ std::string request_body(const std::string &request) {
 	return request.substr(body_start + 4);
 }
 
+std::string nas_account_create_response() {
+	const std::string response_body =
+		"retry=" + base64_encode("0") +
+		"&returncd=" + base64_encode("002") +
+		"&userid=" + base64_encode("1000000000001") +
+		"&datetime=" + base64_encode(current_datetime()) + "\r\n";
+	return "HTTP/1.1 200 OK\r\n"
+		   "Content-Type: text/plain\r\n"
+		   "Content-Length: " + std::to_string(response_body.size()) +
+		   "\r\nNODE: wifiappe1\r\nConnection: close\r\n\r\n" +
+		   response_body;
+}
+
 std::string xml_value(const std::string &xml, std::string_view name) {
 	const std::string open = "<" + std::string(name) + ">";
 	const std::string close = "</" + std::string(name) + ">";
@@ -225,6 +238,11 @@ std::string nas_connectivity_response() {
 
 // process NAS login request and generate appropriate response
 std::string nas_response_for_request(const std::string &request) {
+	if (request.find("POST /ac ") != std::string::npos &&
+		request.find("action=YWNjdGNyZWF0ZQ%2A%2A") != std::string::npos) {
+		return nas_account_create_response();
+	}
+
 	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") != std::string::npos) {
 		const std::string action = sake_action(request);
 		const std::string body = request_body(request);
