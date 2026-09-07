@@ -142,15 +142,17 @@ std::string profile_id_for_user(const std::string &user_id) {
 
 std::string nas_account_create_response(const std::string &request) {
 	const std::string mac_address = request_parameter(request, "macadr");
+	const std::string console_number = request_parameter(request, "csnum");
+	const std::string account_key = mac_address + "|" + console_number;
 	std::string user_id;
 	{
 		std::lock_guard<std::mutex> lock(account_mutex);
-		const auto found = account_user_ids.find(mac_address);
+		const auto found = account_user_ids.find(account_key);
 		if (found != account_user_ids.end()) {
 			user_id = found->second;
 		} else {
 			user_id = std::to_string(next_user_id++);
-			account_user_ids.emplace(mac_address, user_id);
+			account_user_ids.emplace(account_key, user_id);
 		}
 	}
 	const std::string profile_id = profile_id_for_user(user_id);
