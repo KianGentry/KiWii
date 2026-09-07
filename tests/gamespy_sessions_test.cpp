@@ -10,6 +10,7 @@ int main() {
 	const std::vector<mkwii::OnlineSession> both =
 		mkwii::online_sessions_for_profiles({"202", "101", "missing"});
 	assert(both.size() == 2);
+	mkwii::touch_online_session(1);
 	assert(both[0].profile_id == "202");
 	assert(both[1].profile_id == "101");
 

@@ -19,6 +19,13 @@ void upsert_online_session(const OnlineSession &session) {
 	last_seen[session.session_id] = std::chrono::steady_clock::now();
 }
 
+void touch_online_session(std::uint32_t session_id) {
+	std::lock_guard<std::mutex> lock(online_sessions_mutex);
+	if (online_sessions.contains(session_id)) {
+		last_seen[session_id] = std::chrono::steady_clock::now();
+	}
+}
+
 void remove_online_session(std::uint32_t session_id) {
 	std::lock_guard<std::mutex> lock(online_sessions_mutex);
 	online_sessions.erase(session_id);
