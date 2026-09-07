@@ -2,7 +2,7 @@
 
 ## Immediate
 
-- [ ] Remove the remaining legacy duplicate implementations from `src/server.cpp`
+- [x] Remove the remaining legacy duplicate implementations from `src/server.cpp`
 - [x] Replace deprecated OpenSSL RSA generation calls with EVP key-generation APIs
 - [x] Add focused DNS protocol tests
 - [ ] Add focused profile idle-session/keepalive tests
@@ -48,10 +48,10 @@
 - [x] Implement the first observed `NN_CONNECT` exchange
 - [ ] Implement NAT type and endpoint fields from real captures
 - [x] Add NATNEG timeout and session cleanup
-- [ ] Determine whether this Mario Kart Wii revision uses NATNEG or the relay path
+- [x] Determine whether this Mario Kart Wii revision uses NATNEG or the relay path
 - [x] Support both raw/no-SSL and TLS relay handshakes
 - [x] Detect TLS by the initial record bytes instead of assuming TLS
-- [ ] Keep the no-SSL patched-client path working
+- [x] Keep the no-SSL patched-client path working
 - [ ] Parse the decrypted relay/session payloads
 - [ ] Implement the relay/session acknowledgement required by the client
 - [ ] Support UDP/QUIC session transport if the client requires it
