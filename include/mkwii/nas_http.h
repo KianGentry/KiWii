@@ -9,6 +9,7 @@ struct LoginCredentials {
 	std::string challenge;
 	std::string token;
 	std::string user_id;
+	std::string profile_id = "1";
 };
 
 std::string nas_connectivity_response();

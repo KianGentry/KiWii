@@ -130,7 +130,7 @@ std::string profile_login_response(const std::string& request,
             << "\\sesskey\\" << session_key
             << "\\proof\\" << proof
             << "\\userid\\" << user_id
-            << "\\profileid\\1"
+            << "\\profileid\\" << credentials.profile_id
             << "\\uniquenick\\KiWii" << user_id
             << "\\lt\\" << login_ticket
             << "\\id\\" << request_id
@@ -149,7 +149,7 @@ std::string profile_getprofile_response(const std::string& request,
 
     std::ostringstream response;
     response << "\\pi\\\\"
-            << "profileid\\1"
+            << "profileid\\" << credentials.profile_id
             << "\\nick\\" << unique_nick
             << "\\userid\\" << user_id
             << "\\email\\" << email

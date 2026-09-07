@@ -83,10 +83,16 @@ struct LoginSession {
 	std::string challenge;
 	std::string token;
 	std::string request_body;
+	std::string profile_id;
 };
 
 std::unordered_map<std::string, LoginSession> login_sessions;
 std::mutex login_sessions_mutex;
+std::unordered_map<std::string, std::string> account_user_ids;
+std::unordered_map<std::string, std::string> user_profile_ids;
+std::mutex account_mutex;
+std::uint64_t next_user_id = 1000000000001ULL;
+std::uint64_t next_profile_id = 1;
 
 struct FriendInfoRecord {
 	std::uint64_t record_id;
@@ -110,11 +116,49 @@ std::string request_body(const std::string &request) {
 	return request.substr(body_start + 4);
 }
 
-std::string nas_account_create_response() {
+std::string request_parameter(const std::string &request,
+							  std::string_view name) {
+	const std::string marker = std::string(name) + "=";
+	const std::size_t value_start = request.find(marker, request.find("\r\n\r\n"));
+	if (value_start == std::string::npos) {
+		return {};
+	}
+	const std::size_t first = value_start + marker.size();
+	const std::size_t last = request.find('&', first);
+	return request.substr(first, last == std::string::npos ? std::string::npos
+															 : last - first);
+}
+
+std::string profile_id_for_user(const std::string &user_id) {
+	std::lock_guard<std::mutex> lock(account_mutex);
+	const auto found = user_profile_ids.find(user_id);
+	if (found != user_profile_ids.end()) {
+		return found->second;
+	}
+	const std::string profile_id = std::to_string(next_profile_id++);
+	user_profile_ids.emplace(user_id, profile_id);
+	return profile_id;
+}
+
+std::string nas_account_create_response(const std::string &request) {
+	const std::string mac_address = request_parameter(request, "macadr");
+	std::string user_id;
+	{
+		std::lock_guard<std::mutex> lock(account_mutex);
+		const auto found = account_user_ids.find(mac_address);
+		if (found != account_user_ids.end()) {
+			user_id = found->second;
+		} else {
+			user_id = std::to_string(next_user_id++);
+			account_user_ids.emplace(mac_address, user_id);
+		}
+	}
+	const std::string profile_id = profile_id_for_user(user_id);
+	(void)profile_id;
 	const std::string response_body =
 		"retry=" + base64_encode("0") +
 		"&returncd=" + base64_encode("002") +
-		"&userid=" + base64_encode("1000000000001") +
+		"&userid=" + base64_encode(user_id) +
 		"&datetime=" + base64_encode(current_datetime()) + "\r\n";
 	return "HTTP/1.1 200 OK\r\n"
 		   "Content-Type: text/plain\r\n"
@@ -218,7 +262,7 @@ LoginCredentials credentials_for_token(const std::string &token) {
 	std::lock_guard<std::mutex> lock(login_sessions_mutex);
 	for (const auto &[user_id, session] : login_sessions) {
 		if (session.token == token) {
-			return {session.challenge, session.token, user_id};
+			return {session.challenge, session.token, user_id, session.profile_id};
 		}
 	}
 	return {};
@@ -240,7 +284,7 @@ std::string nas_connectivity_response() {
 std::string nas_response_for_request(const std::string &request) {
 	if (request.find("POST /ac ") != std::string::npos &&
 		request.find("action=YWNjdGNyZWF0ZQ%2A%2A") != std::string::npos) {
-		return nas_account_create_response();
+		return nas_account_create_response(request);
 	}
 
 	if (request.find("POST /SakeStorageServer/StorageServer.asmx ") != std::string::npos) {
@@ -261,10 +305,12 @@ std::string nas_response_for_request(const std::string &request) {
 	}
 
 	const std::string user_id = request_user_id(request);
+	const std::string profile_id = profile_id_for_user(user_id);
 	const LoginSession session{
 		random_text(8),
 		"NDS" + random_text(80),
 		request_body(request),
+		profile_id,
 	};
 	std::lock_guard<std::mutex> lock(login_sessions_mutex);
 	login_sessions[user_id] = session;
