@@ -73,7 +73,6 @@ void handle_dns_tcp_connection(int dns_socket, const std::string &address) {
 
 void handle_qr_packet(int qr_socket, const std::string &secret_key) {
     static std::unordered_map<std::uint32_t, std::string> qr_challenges;
-    prune_online_sessions(std::chrono::seconds(61));
     std::vector<std::uint8_t> packet(2048);
     sockaddr_in client_address{};
     socklen_t client_address_length = sizeof(client_address);
@@ -85,8 +84,11 @@ void handle_qr_packet(int qr_socket, const std::string &secret_key) {
     }
     packet.resize(static_cast<std::size_t>(packet_size));
     const std::uint32_t session_id = qr_session_id(packet);
-    if (packet.size() >= 5 && packet[0] == 0x08) {
+    if (packet.size() >= 5 && packet[0] != 0x09) {
         touch_online_session(session_id);
+    }
+    prune_online_sessions(std::chrono::seconds(61));
+    if (packet.size() >= 5 && packet[0] == 0x08) {
         return;
     }
     const auto challenge = qr_challenges.find(session_id);
